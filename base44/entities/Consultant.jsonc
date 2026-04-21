@@ -1,0 +1,75 @@
+{
+  "name": "Consultant",
+  "type": "object",
+  "properties": {
+    "company_id": {
+      "type": "string"
+    },
+    "name": {
+      "type": "string"
+    },
+    "email": {
+      "type": "string"
+    },
+    "telefone": {
+      "type": "string"
+    },
+    "funcao": {
+      "type": "string"
+    },
+    "especialidade_principal": {
+      "type": "string",
+      "enum": [
+        "financeiro",
+        "contabil",
+        "fiscal",
+        "estoque",
+        "compras",
+        "vendas",
+        "producao",
+        "rh",
+        "ti",
+        "integracao",
+        "customizacao",
+        "geral"
+      ]
+    },
+    "especialidades_secundarias": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "capacidade_semanal": {
+      "type": "number",
+      "default": 40
+    },
+    "capacidade_mensal": {
+      "type": "number",
+      "default": 160
+    },
+    "custo_hora": {
+      "type": "number",
+      "default": 0
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "ativo",
+        "inativo",
+        "ferias",
+        "afastado"
+      ],
+      "default": "ativo"
+    },
+    "gestor": {
+      "type": "string"
+    },
+    "observacoes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "name"
+  ]
+}

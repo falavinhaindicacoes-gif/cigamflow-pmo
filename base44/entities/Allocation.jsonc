@@ -1,0 +1,54 @@
+{
+  "name": "Allocation",
+  "type": "object",
+  "properties": {
+    "company_id": {
+      "type": "string"
+    },
+    "project_id": {
+      "type": "string"
+    },
+    "consultant_id": {
+      "type": "string"
+    },
+    "papel_no_projeto": {
+      "type": "string"
+    },
+    "especialidade_aplicada": {
+      "type": "string"
+    },
+    "horas_semanais": {
+      "type": "number",
+      "default": 0
+    },
+    "horas_mensais": {
+      "type": "number",
+      "default": 0
+    },
+    "data_inicio": {
+      "type": "string",
+      "format": "date"
+    },
+    "data_fim": {
+      "type": "string",
+      "format": "date"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "ativa",
+        "encerrada",
+        "pausada",
+        "planejada"
+      ],
+      "default": "ativa"
+    },
+    "observacoes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "project_id",
+    "consultant_id"
+  ]
+}

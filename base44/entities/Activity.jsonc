@@ -1,0 +1,190 @@
+{
+  "name": "Activity",
+  "type": "object",
+  "properties": {
+    "company_id": {
+      "type": "string"
+    },
+    "project_id": {
+      "type": "string"
+    },
+    "client_id": {
+      "type": "string"
+    },
+    "titulo": {
+      "type": "string"
+    },
+    "descricao": {
+      "type": "string"
+    },
+    "fase_projeto": {
+      "type": "string"
+    },
+    "origem": {
+      "type": "string",
+      "enum": [
+        "reuniao",
+        "agenda",
+        "treinamento",
+        "homologacao",
+        "status_report",
+        "go_live",
+        "suporte",
+        "interno",
+        "comite",
+        "outro"
+      ]
+    },
+    "tipo": {
+      "type": "string",
+      "enum": [
+        "pendencia_cliente",
+        "pendencia_interna",
+        "bloqueio",
+        "risco",
+        "inconsistencia",
+        "melhoria",
+        "decisao"
+      ]
+    },
+    "categoria": {
+      "type": "string",
+      "enum": [
+        "processo",
+        "cadastro",
+        "treinamento",
+        "parametrizacao",
+        "integracao",
+        "infraestrutura",
+        "dados",
+        "customizacao",
+        "escopo",
+        "comercial",
+        "suporte",
+        "financeiro",
+        "comunicacao",
+        "aprovacao"
+      ]
+    },
+    "prioridade": {
+      "type": "string",
+      "enum": [
+        "baixa",
+        "media",
+        "alta",
+        "urgente"
+      ],
+      "default": "media"
+    },
+    "criticidade": {
+      "type": "string",
+      "enum": [
+        "baixa",
+        "media",
+        "alta",
+        "critica"
+      ],
+      "default": "media"
+    },
+    "recorrencia": {
+      "type": "string",
+      "enum": [
+        "primeira_vez",
+        "recorrente",
+        "reincidente"
+      ],
+      "default": "primeira_vez"
+    },
+    "responsavel": {
+      "type": "string"
+    },
+    "solicitante": {
+      "type": "string"
+    },
+    "consultor_vinculado": {
+      "type": "string"
+    },
+    "gerente_responsavel": {
+      "type": "string"
+    },
+    "area_responsavel": {
+      "type": "string"
+    },
+    "depende_de": {
+      "type": "string"
+    },
+    "prazo": {
+      "type": "string",
+      "format": "date"
+    },
+    "sla_dias": {
+      "type": "number"
+    },
+    "data_conclusao": {
+      "type": "string",
+      "format": "date"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "aberto",
+        "em_analise",
+        "em_andamento",
+        "aguardando_cliente",
+        "aguardando_interno",
+        "aguardando_terceiro",
+        "validar_solucao",
+        "concluido",
+        "cancelado"
+      ],
+      "default": "aberto"
+    },
+    "motivo_atraso": {
+      "type": "string"
+    },
+    "bloqueia_fase": {
+      "type": "boolean",
+      "default": false
+    },
+    "bloqueia_go_live": {
+      "type": "boolean",
+      "default": false
+    },
+    "exige_aprovacao": {
+      "type": "boolean",
+      "default": false
+    },
+    "aprovado_por": {
+      "type": "string"
+    },
+    "data_aprovacao": {
+      "type": "string",
+      "format": "date"
+    },
+    "acao_esperada": {
+      "type": "string"
+    },
+    "tratativa_realizada": {
+      "type": "string"
+    },
+    "proximo_passo": {
+      "type": "string"
+    },
+    "causa_raiz": {
+      "type": "string"
+    },
+    "solucao_aplicada": {
+      "type": "string"
+    },
+    "observacoes": {
+      "type": "string"
+    },
+    "anexo_url": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "titulo",
+    "project_id"
+  ]
+}

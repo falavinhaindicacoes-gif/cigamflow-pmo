@@ -1,0 +1,47 @@
+{
+  "name": "Notification",
+  "type": "object",
+  "properties": {
+    "user_email": {
+      "type": "string"
+    },
+    "tipo": {
+      "type": "string",
+      "enum": [
+        "atividade_atribuida",
+        "item_atrasado",
+        "bloqueio_criado",
+        "mudanca_responsavel",
+        "mudanca_status",
+        "prazo_proximo",
+        "aprovacao_pendente",
+        "sobrecarga",
+        "projeto_vermelho",
+        "go_live_bloqueado"
+      ]
+    },
+    "titulo": {
+      "type": "string"
+    },
+    "mensagem": {
+      "type": "string"
+    },
+    "entity_type": {
+      "type": "string"
+    },
+    "entity_id": {
+      "type": "string"
+    },
+    "lida": {
+      "type": "boolean",
+      "default": false
+    },
+    "project_id": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "titulo",
+    "user_email"
+  ]
+}

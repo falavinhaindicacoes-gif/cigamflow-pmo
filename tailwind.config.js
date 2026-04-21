@@ -4,6 +4,9 @@ module.exports = {
     content: ["./index.html", "./src/**/*.{ts,tsx,js,jsx}"],
   theme: {
   	extend: {
+  		fontFamily: {
+  			inter: ['var(--font-inter)'],
+  		},
   		borderRadius: {
   			lg: 'var(--radius)',
   			md: 'calc(var(--radius) - 2px)',
@@ -85,5 +88,16 @@ module.exports = {
   		}
   	}
   },
+  safelist: [
+    'bg-green-500', 'bg-green-100', 'bg-green-50', 'text-green-700', 'text-green-600', 'text-green-500', 'border-green-200',
+    'bg-yellow-500', 'bg-yellow-100', 'bg-yellow-50', 'text-yellow-700', 'text-yellow-600', 'text-yellow-500', 'border-yellow-200',
+    'bg-red-500', 'bg-red-100', 'bg-red-50', 'text-red-700', 'text-red-600', 'text-red-500', 'border-red-200',
+    'bg-blue-500', 'bg-blue-100', 'bg-blue-50', 'text-blue-700', 'text-blue-600', 'text-blue-500', 'border-blue-200',
+    'bg-orange-500', 'bg-orange-100', 'bg-orange-50', 'text-orange-700', 'text-orange-600', 'border-orange-200',
+    'bg-purple-500', 'bg-purple-100', 'bg-purple-50', 'text-purple-700', 'text-purple-600', 'border-purple-200',
+    'bg-indigo-500', 'bg-indigo-100', 'bg-indigo-50', 'text-indigo-700', 'text-indigo-600', 'border-indigo-200',
+    'bg-gray-500', 'bg-gray-100', 'bg-gray-50', 'text-gray-700', 'text-gray-600', 'border-gray-200',
+    'bg-emerald-500', 'bg-amber-500', 'bg-rose-500',
+  ],
   plugins: [require("tailwindcss-animate")],
 }

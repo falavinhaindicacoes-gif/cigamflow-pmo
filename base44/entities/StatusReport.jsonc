@@ -1,0 +1,164 @@
+{
+  "name": "StatusReport",
+  "type": "object",
+  "properties": {
+    "company_id": {
+      "type": "string"
+    },
+    "project_id": {
+      "type": "string"
+    },
+    "client_id": {
+      "type": "string"
+    },
+    "gerente_projeto": {
+      "type": "string"
+    },
+    "periodo_inicio": {
+      "type": "string",
+      "format": "date"
+    },
+    "periodo_fim": {
+      "type": "string",
+      "format": "date"
+    },
+    "data_emissao": {
+      "type": "string",
+      "format": "date"
+    },
+    "progresso_previsto": {
+      "type": "number"
+    },
+    "progresso_realizado": {
+      "type": "number"
+    },
+    "percentual_conclusao": {
+      "type": "number"
+    },
+    "status_prazo": {
+      "type": "string",
+      "enum": [
+        "verde",
+        "amarelo",
+        "vermelho"
+      ],
+      "default": "verde"
+    },
+    "comentario_prazo": {
+      "type": "string"
+    },
+    "horas_previstas": {
+      "type": "number"
+    },
+    "horas_realizadas": {
+      "type": "number"
+    },
+    "custo_previsto": {
+      "type": "number"
+    },
+    "custo_realizado": {
+      "type": "number"
+    },
+    "status_custo": {
+      "type": "string",
+      "enum": [
+        "verde",
+        "amarelo",
+        "vermelho"
+      ],
+      "default": "verde"
+    },
+    "comentario_custo": {
+      "type": "string"
+    },
+    "entregas_concluidas": {
+      "type": "string"
+    },
+    "riscos": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "descricao": {
+            "type": "string"
+          },
+          "tipo": {
+            "type": "string"
+          },
+          "probabilidade": {
+            "type": "string"
+          },
+          "impacto": {
+            "type": "string"
+          },
+          "responsavel": {
+            "type": "string"
+          },
+          "plano_acao": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "pontos_atencao": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "ponto": {
+            "type": "string"
+          },
+          "impacto": {
+            "type": "string"
+          },
+          "acao_corretiva": {
+            "type": "string"
+          },
+          "responsavel": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "proximas_atividades": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "atividade": {
+            "type": "string"
+          },
+          "responsavel": {
+            "type": "string"
+          },
+          "data_entrega": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "comentarios_gerente": {
+      "type": "string"
+    },
+    "status_aprovacao": {
+      "type": "string",
+      "enum": [
+        "rascunho",
+        "pendente",
+        "aprovado",
+        "rejeitado"
+      ],
+      "default": "rascunho"
+    },
+    "aprovado_por": {
+      "type": "string"
+    },
+    "data_aprovacao": {
+      "type": "string",
+      "format": "date"
+    }
+  },
+  "required": [
+    "project_id"
+  ]
+}

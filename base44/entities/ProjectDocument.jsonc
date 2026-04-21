@@ -1,0 +1,52 @@
+{
+  "name": "ProjectDocument",
+  "type": "object",
+  "properties": {
+    "project_id": {
+      "type": "string"
+    },
+    "tipo": {
+      "type": "string",
+      "enum": [
+        "dados_iniciais",
+        "termo_abertura",
+        "plano_projeto",
+        "termo_comprometimento",
+        "termo_encerramento",
+        "licoes_aprendidas"
+      ]
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "rascunho",
+        "pendente_aprovacao",
+        "aprovado",
+        "rejeitado"
+      ],
+      "default": "rascunho"
+    },
+    "data_criacao": {
+      "type": "string",
+      "format": "date"
+    },
+    "data_aprovacao": {
+      "type": "string",
+      "format": "date"
+    },
+    "aprovado_por": {
+      "type": "string"
+    },
+    "conteudo": {
+      "type": "object",
+      "description": "JSON with all form fields for the document type"
+    },
+    "observacoes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "project_id",
+    "tipo"
+  ]
+}

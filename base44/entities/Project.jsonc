@@ -1,0 +1,148 @@
+{
+  "name": "Project",
+  "type": "object",
+  "properties": {
+    "company_id": {
+      "type": "string"
+    },
+    "client_id": {
+      "type": "string"
+    },
+    "name": {
+      "type": "string"
+    },
+    "gerente_projeto": {
+      "type": "string"
+    },
+    "patrocinador": {
+      "type": "string"
+    },
+    "coordenador_cliente": {
+      "type": "string"
+    },
+    "facilitador": {
+      "type": "string"
+    },
+    "responsavel_ti": {
+      "type": "string"
+    },
+    "tipo_implantacao": {
+      "type": "string",
+      "enum": [
+        "remota",
+        "presencial",
+        "hibrida"
+      ]
+    },
+    "data_inicio": {
+      "type": "string",
+      "format": "date"
+    },
+    "data_prevista_termino": {
+      "type": "string",
+      "format": "date"
+    },
+    "data_real_termino": {
+      "type": "string",
+      "format": "date"
+    },
+    "fase_atual": {
+      "type": "string",
+      "enum": [
+        "comercial",
+        "inicializacao",
+        "planejamento",
+        "definicao_parametrizacao",
+        "treinamento",
+        "homologacao_piloto",
+        "preparacao_virada",
+        "go_live",
+        "encerramento"
+      ],
+      "default": "comercial"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "nao_iniciado",
+        "em_andamento",
+        "pausado",
+        "concluido",
+        "cancelado"
+      ],
+      "default": "nao_iniciado"
+    },
+    "percentual_progresso": {
+      "type": "number",
+      "default": 0
+    },
+    "saude": {
+      "type": "string",
+      "enum": [
+        "verde",
+        "amarelo",
+        "vermelho"
+      ],
+      "default": "verde"
+    },
+    "risco_geral": {
+      "type": "string",
+      "enum": [
+        "baixo",
+        "medio",
+        "alto",
+        "critico"
+      ],
+      "default": "baixo"
+    },
+    "bloqueia_go_live": {
+      "type": "boolean",
+      "default": false
+    },
+    "prioritario": {
+      "type": "boolean",
+      "default": false
+    },
+    "sistema_atual_cliente": {
+      "type": "string"
+    },
+    "motivo_troca": {
+      "type": "string"
+    },
+    "expectativa_cliente": {
+      "type": "string"
+    },
+    "escopo_modulos": {
+      "type": "string"
+    },
+    "qtd_usuarios": {
+      "type": "number"
+    },
+    "particularidades": {
+      "type": "string"
+    },
+    "observacoes": {
+      "type": "string"
+    },
+    "horas_previstas": {
+      "type": "number",
+      "default": 0
+    },
+    "horas_realizadas": {
+      "type": "number",
+      "default": 0
+    },
+    "custo_previsto": {
+      "type": "number",
+      "default": 0
+    },
+    "custo_realizado": {
+      "type": "number",
+      "default": 0
+    }
+  },
+  "required": [
+    "name",
+    "client_id"
+  ]
+}

@@ -1,0 +1,70 @@
+{
+  "name": "Client",
+  "type": "object",
+  "properties": {
+    "company_id": {
+      "type": "string",
+      "description": "Empresa propriet\u00e1ria"
+    },
+    "razao_social": {
+      "type": "string"
+    },
+    "nome_fantasia": {
+      "type": "string"
+    },
+    "cnpj": {
+      "type": "string"
+    },
+    "municipio": {
+      "type": "string"
+    },
+    "uf": {
+      "type": "string"
+    },
+    "segmento": {
+      "type": "string"
+    },
+    "regime_tributario": {
+      "type": "string",
+      "enum": [
+        "real",
+        "presumido",
+        "simples",
+        "mei"
+      ]
+    },
+    "contato_principal": {
+      "type": "string"
+    },
+    "telefone": {
+      "type": "string"
+    },
+    "email": {
+      "type": "string"
+    },
+    "grupo_economico": {
+      "type": "string"
+    },
+    "situacao": {
+      "type": "string",
+      "enum": [
+        "ativo",
+        "inativo",
+        "prospeccao"
+      ],
+      "default": "ativo"
+    },
+    "origem": {
+      "type": "string"
+    },
+    "vendedor_responsavel": {
+      "type": "string"
+    },
+    "observacoes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "razao_social"
+  ]
+}
