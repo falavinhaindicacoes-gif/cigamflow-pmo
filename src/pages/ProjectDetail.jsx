@@ -13,6 +13,7 @@ import ProjectTimeline from '@/components/project/ProjectTimeline';
 import ProjectDocuments from '@/components/project/ProjectDocuments';
 import ProjectStatusReports from '@/components/project/ProjectStatusReports';
 import ProjectRisks from '@/components/project/ProjectRisks';
+import ProjectHistorico from '@/components/project/ProjectHistorico';
 import DocumentForm from '@/pages/DocumentForm';
 import ActivityFormDialog from '@/components/activities/ActivityFormDialog';
 
@@ -119,6 +120,7 @@ export default function ProjectDetail() {
             <TabsTrigger value="reports" className="text-xs">Status Reports</TabsTrigger>
             <TabsTrigger value="team" className="text-xs">Equipe</TabsTrigger>
             <TabsTrigger value="timeline" className="text-xs">Cronograma</TabsTrigger>
+            <TabsTrigger value="historico" className="text-xs">Histórico</TabsTrigger>
           </TabsList>
         </div>
 
@@ -154,6 +156,10 @@ export default function ProjectDetail() {
 
         <TabsContent value="timeline">
           <ProjectTimeline project={project} />
+        </TabsContent>
+
+        <TabsContent value="historico">
+          <ProjectHistorico project={project} />
         </TabsContent>
       </Tabs>
 
