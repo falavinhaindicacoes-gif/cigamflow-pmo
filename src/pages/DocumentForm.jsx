@@ -31,11 +31,11 @@ export default function DocumentForm({ projectId, tipo, docId, onClose }) {
   });
 
   const { data: projectData } = useQuery({
-    queryKey: ['project', projectId],
-    queryFn: () => base44.entities.Project.filter({ id: projectId }),
+    queryKey: ['document-project', projectId],
+    queryFn: () => base44.entities.Project.list().then(ps => ps.find(p => p.id === projectId)),
     enabled: !!projectId,
   });
-  const projectName = projectData?.[0]?.name || '';
+  const projectName = projectData?.name || '';
 
   const doc = existingDoc?.[0];
 
