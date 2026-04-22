@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
-  LayoutDashboard, FolderKanban, Users, UserCog, CalendarClock,
-  ListChecks, Building2, FileText, Bell, ChevronLeft, ChevronRight,
+  LayoutDashboard, FolderKanban, UserCog, CalendarClock,
+  ListChecks, Building2, FileText, ChevronLeft, ChevronRight,
   Menu, X, Settings
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import NotificationBell from '@/components/layout/NotificationBell';
 
 const navItems = [
   { path: '/', icon: LayoutDashboard, label: 'Dashboard' },
@@ -68,7 +69,11 @@ export default function Sidebar() {
         ))}
       </nav>
 
-      <div className="p-3 border-t border-sidebar-border">
+      <div className="p-3 border-t border-sidebar-border space-y-1">
+        <div className={cn("flex items-center", collapsed ? "justify-center" : "gap-2 px-3 py-1")}>
+          <NotificationBell />
+          {!collapsed && <span className="text-xs text-sidebar-foreground/60">Notificações</span>}
+        </div>
         <Link
           to="/settings"
           onClick={() => setMobileOpen(false)}
