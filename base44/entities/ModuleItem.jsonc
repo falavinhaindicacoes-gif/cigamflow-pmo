@@ -1,0 +1,54 @@
+{
+  "name": "ModuleItem",
+  "type": "object",
+  "properties": {
+    "project_module_id": {
+      "type": "string"
+    },
+    "project_id": {
+      "type": "string"
+    },
+    "company_id": {
+      "type": "string"
+    },
+    "template_item_id": {
+      "type": "string",
+      "description": "Refer\u00eancia ao item de template de origem (opcional)"
+    },
+    "name": {
+      "type": "string"
+    },
+    "descricao": {
+      "type": "string"
+    },
+    "horas_necessarias": {
+      "type": "number",
+      "default": 0
+    },
+    "horas_detalhadas": {
+      "type": "string",
+      "description": "Observa\u00e7\u00f5es/detalhamento das horas"
+    },
+    "responsavel": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "nao_iniciado",
+        "em_andamento",
+        "concluido",
+        "cancelado"
+      ],
+      "default": "nao_iniciado"
+    },
+    "ordem": {
+      "type": "number",
+      "default": 0
+    }
+  },
+  "required": [
+    "project_module_id",
+    "name"
+  ]
+}

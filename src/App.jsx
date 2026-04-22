@@ -17,6 +17,7 @@ import StatusReports from '@/pages/StatusReports';
 import Settings from '@/pages/Settings';
 import SeedData from '@/pages/SeedData';
 import ConsultantSchedule from '@/pages/ConsultantSchedule';
+import ModuleTemplates from '@/pages/ModuleTemplates';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -56,6 +57,7 @@ const AuthenticatedApp = () => {
         <Route path="/settings" element={<Settings />} />
         <Route path="/seed" element={<SeedData />} />
         <Route path="/schedule" element={<ConsultantSchedule />} />
+        <Route path="/module-templates" element={<ModuleTemplates />} />
       </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>

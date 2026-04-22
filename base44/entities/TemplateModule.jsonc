@@ -1,0 +1,25 @@
+{
+  "name": "TemplateModule",
+  "type": "object",
+  "properties": {
+    "template_id": {
+      "type": "string",
+      "description": "ID do ModuleTemplate pai"
+    },
+    "name": {
+      "type": "string",
+      "description": "Nome do m\u00f3dulo"
+    },
+    "descricao": {
+      "type": "string"
+    },
+    "ordem": {
+      "type": "number",
+      "default": 0
+    }
+  },
+  "required": [
+    "template_id",
+    "name"
+  ]
+}
