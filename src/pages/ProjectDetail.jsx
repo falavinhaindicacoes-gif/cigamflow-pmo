@@ -123,7 +123,7 @@ export default function ProjectDetail() {
             <TabsTrigger value="team" className="text-xs">Equipe</TabsTrigger>
             <TabsTrigger value="timeline" className="text-xs">Cronograma</TabsTrigger>
             <TabsTrigger value="historico" className="text-xs">Histórico</TabsTrigger>
-            <TabsTrigger value="modulos" className="text-xs">Módulos</TabsTrigger>
+            <TabsTrigger value="modulos" className="text-xs">Project</TabsTrigger>
             <TabsTrigger value="auditoria" className="text-xs">Auditoria</TabsTrigger>
           </TabsList>
         </div>
