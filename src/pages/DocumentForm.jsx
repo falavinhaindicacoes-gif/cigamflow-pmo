@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { ArrowLeft, Save, CheckCircle, Plus, Trash2 } from 'lucide-react';
+import { ArrowLeft, Save, CheckCircle, Plus, Trash2, FileDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
+import { generateDocumentPDF } from '@/components/documents/PdfGenerator';
 
 const DOC_LABELS = {
   dados_iniciais: 'Dados Iniciais / Proposta',
@@ -28,6 +29,13 @@ export default function DocumentForm({ projectId, tipo, docId, onClose }) {
     queryFn: () => base44.entities.ProjectDocument.filter({ project_id: projectId, tipo }),
     enabled: !!projectId && !!tipo,
   });
+
+  const { data: projectData } = useQuery({
+    queryKey: ['project', projectId],
+    queryFn: () => base44.entities.Project.filter({ id: projectId }),
+    enabled: !!projectId,
+  });
+  const projectName = projectData?.[0]?.name || '';
 
   const doc = existingDoc?.[0];
 
@@ -85,6 +93,10 @@ export default function DocumentForm({ projectId, tipo, docId, onClose }) {
               <SelectItem value="rejeitado">Rejeitado</SelectItem>
             </SelectContent>
           </Select>
+          <Button variant="outline" onClick={() => generateDocumentPDF(tipo, conteudo, projectName)} className="gap-2">
+            <FileDown className="w-4 h-4" />
+            Baixar PDF
+          </Button>
           <Button onClick={handleSave} disabled={saveMutation.isPending} className="gap-2">
             <Save className="w-4 h-4" />
             {saveMutation.isPending ? 'Salvando...' : 'Salvar'}
