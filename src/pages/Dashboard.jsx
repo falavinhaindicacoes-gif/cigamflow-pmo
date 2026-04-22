@@ -13,7 +13,7 @@ import CapacityGauge from '@/components/shared/CapacityGauge';
 import PageHeader from '@/components/shared/PageHeader';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { FASES_PROJETO, getFaseLabel, getActivityStatusInfo } from '@/lib/constants';
-import { format, differenceInDays } from 'date-fns';
+import { format, differenceInDays, startOfWeek, endOfWeek } from 'date-fns';
 
 export default function Dashboard() {
   const { data: projects = [] } = useQuery({ queryKey: ['projects'], queryFn: () => base44.entities.Project.list('-created_date', 100) });
@@ -28,14 +28,24 @@ export default function Dashboard() {
   const overdueActivities = openActivities.filter(a => a.prazo && new Date(a.prazo) < new Date());
   const blockingGoLive = openActivities.filter(a => a.bloqueia_go_live);
   const blockingPhase = openActivities.filter(a => a.bloqueia_fase);
-  const activeAllocations = allocations.filter(a => a.status === 'ativa');
   const criticalActivities = openActivities.filter(a => a.criticidade === 'critica');
 
+  // Capacidade baseada exclusivamente na agenda da semana atual
+  // 3 turnos/dia × 5 dias úteis = 15 turnos = 100% de capacidade
+  const TURNOS_SEMANA_CHEIA = 15;
+  const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 });
+  const weekEnd = endOfWeek(new Date(), { weekStartsOn: 1 });
+
+  const getWeekAllocations = (cId) =>
+    allocations.filter(a => {
+      if (a.consultant_id !== cId || !a.data) return false;
+      const d = new Date(a.data);
+      return d >= weekStart && d <= weekEnd;
+    });
+
   const getOccupancy = (cId) => {
-    const c = consultants.find(x => x.id === cId);
-    if (!c || !c.capacidade_semanal) return 0;
-    const h = activeAllocations.filter(a => a.consultant_id === cId).reduce((s, a) => s + (a.horas_semanais || 0), 0);
-    return (h / c.capacidade_semanal) * 100;
+    const turnos = getWeekAllocations(cId).length;
+    return (turnos / TURNOS_SEMANA_CHEIA) * 100;
   };
 
   const activeConsultants = consultants.filter(c => c.status === 'ativo');
@@ -406,8 +416,10 @@ export default function Dashboard() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {activeConsultants.sort((a, b) => getOccupancy(b.id) - getOccupancy(a.id)).map(c => {
                 const occ = getOccupancy(c.id);
-                const allocs = activeAllocations.filter(a => a.consultant_id === c.id);
-                const totalH = allocs.reduce((s, a) => s + (a.horas_semanais || 0), 0);
+                const weekAllocs = getWeekAllocations(c.id);
+                const turnos = weekAllocs.length;
+                // Projetos únicos alocados na semana
+                const projIds = [...new Set(weekAllocs.map(a => a.project_id).filter(Boolean))];
                 return (
                   <div key={c.id} className={`p-4 rounded-lg border bg-background ${occ > 100 ? 'border-red-200' : occ > 80 ? 'border-yellow-200' : 'border-border'}`}>
                     <div className="flex items-center justify-between mb-2">
@@ -416,13 +428,13 @@ export default function Dashboard() {
                     </div>
                     <CapacityGauge percentage={occ} />
                     <div className="mt-2 flex items-center justify-between text-[11px] text-muted-foreground">
-                      <span>{totalH}h / {c.capacidade_semanal || 40}h sem</span>
-                      <span>{allocs.length} projeto{allocs.length !== 1 ? 's' : ''}</span>
+                      <span>{turnos}/{TURNOS_SEMANA_CHEIA} turnos esta semana</span>
+                      <span>{projIds.length} projeto{projIds.length !== 1 ? 's' : ''}</span>
                     </div>
-                    {allocs.map(al => (
-                      <div key={al.id} className="mt-1 flex items-center justify-between text-[10px]">
-                        <span className="truncate text-muted-foreground max-w-[130px]">{getProjectName(al.project_id)}</span>
-                        <span className="text-muted-foreground">{al.horas_semanais}h</span>
+                    {projIds.map(pid => (
+                      <div key={pid} className="mt-1 flex items-center justify-between text-[10px]">
+                        <span className="truncate text-muted-foreground max-w-[160px]">{getProjectName(pid)}</span>
+                        <span className="text-muted-foreground">{weekAllocs.filter(a => a.project_id === pid).length} turnos</span>
                       </div>
                     ))}
                   </div>
