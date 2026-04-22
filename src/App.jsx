@@ -15,6 +15,7 @@ import Allocations from '@/pages/Allocations';
 import Activities from '@/pages/Activities';
 import StatusReports from '@/pages/StatusReports';
 import Settings from '@/pages/Settings';
+import SeedData from '@/pages/SeedData';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -52,6 +53,7 @@ const AuthenticatedApp = () => {
         <Route path="/activities" element={<Activities />} />
         <Route path="/reports" element={<StatusReports />} />
         <Route path="/settings" element={<Settings />} />
+        <Route path="/seed" element={<SeedData />} />
       </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>

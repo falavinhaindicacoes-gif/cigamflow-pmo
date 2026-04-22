@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, FolderKanban, UserCog, CalendarClock,
   ListChecks, Building2, FileText, ChevronLeft, ChevronRight,
-  Menu, X, Settings
+  Menu, X, Settings, Database
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import NotificationBell from '@/components/layout/NotificationBell';
@@ -74,6 +74,19 @@ export default function Sidebar() {
           <NotificationBell />
           {!collapsed && <span className="text-xs text-sidebar-foreground/60">Notificações</span>}
         </div>
+        <Link
+          to="/seed"
+          onClick={() => setMobileOpen(false)}
+          className={cn(
+            "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all",
+            isActive('/seed')
+              ? "bg-sidebar-primary text-sidebar-primary-foreground"
+              : "text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent"
+          )}
+        >
+          <Database className={cn("w-5 h-5 flex-shrink-0", collapsed && "mx-auto")} />
+          {!collapsed && <span>Dados de Exemplo</span>}
+        </Link>
         <Link
           to="/settings"
           onClick={() => setMobileOpen(false)}

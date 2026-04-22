@@ -488,61 +488,127 @@ function TermoEncerramentoForm({ conteudo, up, updateList, addItem, removeItem }
 
 // ========== LIÇÕES APRENDIDAS ==========
 const LICOES_CHECKLIST = [
-  { key: 'req_usuario', label: 'Requisitos do usuário foram claramente definidos?' },
-  { key: 'metas_definidas', label: 'As metas do projeto foram adequadamente definidas?' },
-  { key: 'aderencia_objetivos', label: 'O projeto aderiu aos objetivos estabelecidos?' },
-  { key: 'gestao_riscos', label: 'A gestão de riscos foi eficaz?' },
-  { key: 'sobrecarga_projetos', label: 'Houve sobrecarga por múltiplos projetos simultâneos?' },
-  { key: 'selecao_pessoas', label: 'A seleção de pessoas foi adequada?' },
-  { key: 'treinamento', label: 'O treinamento foi suficiente e bem executado?' },
-  { key: 'disponibilidade_recursos', label: 'Os recursos estiveram disponíveis conforme planejado?' },
-  { key: 'planejamento_detalhado', label: 'O planejamento foi suficientemente detalhado?' },
-  { key: 'controle_mudancas', label: 'O controle de mudanças funcionou adequadamente?' },
-  { key: 'comunicacao', label: 'A comunicação entre as partes foi eficaz?' },
-  { key: 'cooperacao_areas', label: 'Houve boa cooperação entre as áreas envolvidas?' },
-  { key: 'criterios_encerramento', label: 'Os critérios de encerramento foram claros e cumpridos?' },
+  // Requisitos e objetivos
+  { grupo: 'Requisitos e Objetivos', key: 'req_usuario', label: 'Os requisitos do usuário foram claramente definidos e documentados?' },
+  { grupo: 'Requisitos e Objetivos', key: 'metas_definidas', label: 'As metas do projeto foram adequadamente definidas e mensuráveis?' },
+  { grupo: 'Requisitos e Objetivos', key: 'aderencia_objetivos', label: 'O projeto aderiu aos objetivos estabelecidos no Termo de Abertura?' },
+  { grupo: 'Requisitos e Objetivos', key: 'conceito_aplicavel', label: 'O conceito da solução foi aplicável à realidade do cliente?' },
+  { grupo: 'Requisitos e Objetivos', key: 'definicao_projeto', label: 'O projeto foi definido de forma adequada antes de iniciar?' },
+  // Gestão e riscos
+  { grupo: 'Gestão e Riscos', key: 'gestao_riscos', label: 'A gestão de riscos foi eficaz durante todo o projeto?' },
+  { grupo: 'Gestão e Riscos', key: 'tecnologia_testada', label: 'A tecnologia foi testada antes da implantação no cliente?' },
+  { grupo: 'Gestão e Riscos', key: 'sobrecarga_projetos', label: 'Houve sobrecarga por múltiplos projetos simultâneos na equipe?' },
+  { grupo: 'Gestão e Riscos', key: 'reporte_gerente', label: 'O gerente de projeto reportou adequadamente o status e riscos?' },
+  // Pessoas e equipe
+  { grupo: 'Pessoas e Equipe', key: 'selecao_pessoas', label: 'A seleção de pessoas para o projeto foi adequada?' },
+  { grupo: 'Pessoas e Equipe', key: 'treinamento_equipe', label: 'O treinamento da equipe de implantação foi suficiente?' },
+  { grupo: 'Pessoas e Equipe', key: 'organizacao_escritorio', label: 'O escritório do projeto foi bem organizado e gerenciado?' },
+  { grupo: 'Pessoas e Equipe', key: 'disponibilidade_recursos', label: 'Os recursos estiveram disponíveis conforme planejado?' },
+  { grupo: 'Pessoas e Equipe', key: 'adequacao_time', label: 'O time do projeto foi adequado em competência e tamanho?' },
+  { grupo: 'Pessoas e Equipe', key: 'eficacia_gerente', label: 'O gerente de projeto foi eficaz na condução do projeto?' },
+  // Planejamento
+  { grupo: 'Planejamento', key: 'planejamento_detalhado', label: 'O planejamento foi suficientemente detalhado e realista?' },
+  { grupo: 'Planejamento', key: 'orcamento_adequado', label: 'O orçamento foi adequado e bem controlado?' },
+  { grupo: 'Planejamento', key: 'definicao_tarefas', label: 'As tarefas foram claramente definidas e atribuídas?' },
+  // Execução e controle
+  { grupo: 'Execução e Controle', key: 'controle_mudancas', label: 'O controle de mudanças funcionou adequadamente?' },
+  { grupo: 'Execução e Controle', key: 'clareza_especificacoes', label: 'As especificações estavam claras o suficiente para a equipe?' },
+  { grupo: 'Execução e Controle', key: 'suficiencia_documentacao', label: 'A documentação do projeto foi suficiente e mantida atualizada?' },
+  { grupo: 'Execução e Controle', key: 'qualidade_performance', label: 'A qualidade e performance da solução atenderam às expectativas?' },
+  { grupo: 'Execução e Controle', key: 'variacao_custos', label: 'A variação de custos ficou dentro do tolerável?' },
+  { grupo: 'Execução e Controle', key: 'controles_time', label: 'Os controles internos do time foram eficazes?' },
+  { grupo: 'Execução e Controle', key: 'controles_gerencia', label: 'Os controles da gerência foram adequados?' },
+  // Comunicação e stakeholders
+  { grupo: 'Comunicação e Stakeholders', key: 'comunicacao', label: 'A comunicação entre as partes foi eficaz e frequente?' },
+  { grupo: 'Comunicação e Stakeholders', key: 'cooperacao_areas', label: 'Houve boa cooperação entre as áreas envolvidas?' },
+  { grupo: 'Comunicação e Stakeholders', key: 'autoridade_responsabilidade', label: 'A autoridade e responsabilidade foram claramente definidas?' },
+  { grupo: 'Comunicação e Stakeholders', key: 'suporte_gerencia', label: 'O suporte da alta gestão foi adequado e presente?' },
+  // Encerramento
+  { grupo: 'Encerramento', key: 'redirecionamento', label: 'O projeto precisou ser redirecionado? Se sim, foi bem conduzido?' },
+  { grupo: 'Encerramento', key: 'criterios_encerramento', label: 'Os critérios de encerramento foram claros e cumpridos?' },
+  { grupo: 'Encerramento', key: 'treinamento_usuarios', label: 'O treinamento dos usuários finais foi suficiente para o go live?' },
 ];
 
-function LicoesAprendidasForm({ conteudo, up }) {
+function LicoesAprendidasForm({ conteudo, up, updateList, addItem, removeItem }) {
   const updateChecklist = (key, field, value) => {
     const checklist = { ...(conteudo.checklist || {}) };
     checklist[key] = { ...(checklist[key] || {}), [field]: value };
     up('checklist', checklist);
   };
 
+  // Group items by grupo
+  const grupos = [...new Set(LICOES_CHECKLIST.map(i => i.grupo))];
+
+  const respostaColor = (r) => {
+    if (r === 'sim') return 'bg-green-50 border-green-200';
+    if (r === 'nao') return 'bg-red-50 border-red-200';
+    if (r === 'na') return 'bg-gray-50 border-gray-200';
+    return '';
+  };
+
   return (
     <div className="space-y-4">
       <Section title="Checklist de Avaliação">
-        <div className="space-y-3">
-          {LICOES_CHECKLIST.map(item => {
-            const entry = conteudo.checklist?.[item.key] || {};
-            return (
-              <div key={item.key} className="flex items-center gap-4 border-b pb-3 last:border-0">
-                <span className="flex-1 text-sm">{item.label}</span>
-                <Select value={entry.resposta || ''} onValueChange={v => updateChecklist(item.key, 'resposta', v)}>
-                  <SelectTrigger className="w-24"><SelectValue placeholder="—" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="sim">Sim</SelectItem>
-                    <SelectItem value="nao">Não</SelectItem>
-                    <SelectItem value="na">N/A</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Select value={entry.impacto || ''} onValueChange={v => updateChecklist(item.key, 'impacto', v)}>
-                  <SelectTrigger className="w-24"><SelectValue placeholder="Impacto" /></SelectTrigger>
-                  <SelectContent>
-                    {[1,2,3,4,5].map(n => <SelectItem key={n} value={String(n)}>{n}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-            );
-          })}
-        </div>
+        <p className="text-xs text-muted-foreground mb-4">
+          Para cada item, selecione a resposta (Sim / Não / N/A) e o nível de impacto no projeto (1 = mínimo · 5 = máximo).
+        </p>
+        {grupos.map(grupo => (
+          <div key={grupo} className="mb-5">
+            <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 pb-1 border-b">{grupo}</h4>
+            <div className="space-y-2">
+              {LICOES_CHECKLIST.filter(i => i.grupo === grupo).map(item => {
+                const entry = conteudo.checklist?.[item.key] || {};
+                return (
+                  <div key={item.key} className={`flex items-center gap-3 p-2 rounded-lg border ${respostaColor(entry.resposta)}`}>
+                    <span className="flex-1 text-sm leading-snug">{item.label}</span>
+                    <Select value={entry.resposta || ''} onValueChange={v => updateChecklist(item.key, 'resposta', v)}>
+                      <SelectTrigger className="w-20 h-8 text-xs"><SelectValue placeholder="—" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="sim">Sim</SelectItem>
+                        <SelectItem value="nao">Não</SelectItem>
+                        <SelectItem value="na">N/A</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Select value={entry.impacto || ''} onValueChange={v => updateChecklist(item.key, 'impacto', v)}>
+                      <SelectTrigger className="w-20 h-8 text-xs"><SelectValue placeholder="1-5" /></SelectTrigger>
+                      <SelectContent>
+                        {[1,2,3,4,5].map(n => <SelectItem key={n} value={String(n)}>{n} — {['Mín','Baixo','Médio','Alto','Máx'][n-1]}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ))}
       </Section>
       <Section title="Reflexões Finais">
         <Field label="O que faríamos da mesma forma em projetos futuros?"><Textarea value={conteudo.mesma_forma || ''} onChange={e => up('mesma_forma', e.target.value)} rows={3} /></Field>
         <Field label="O que deveríamos fazer de forma diferente?"><Textarea value={conteudo.forma_diferente || ''} onChange={e => up('forma_diferente', e.target.value)} rows={3} /></Field>
-        <Field label="O que sabemos hoje que não sabíamos antes?"><Textarea value={conteudo.aprendizado || ''} onChange={e => up('aprendizado', e.target.value)} rows={3} /></Field>
-        <Field label="Recomendações para projetos futuros"><Textarea value={conteudo.recomendacoes || ''} onChange={e => up('recomendacoes', e.target.value)} rows={3} /></Field>
+        <Field label="O que sabemos hoje sobre o projeto e pessoas que não sabíamos antes?"><Textarea value={conteudo.aprendizado || ''} onChange={e => up('aprendizado', e.target.value)} rows={3} /></Field>
+        <Field label="Que recomendações podem melhorar projetos futuros?"><Textarea value={conteudo.recomendacoes || ''} onChange={e => up('recomendacoes', e.target.value)} rows={3} /></Field>
+      </Section>
+      <Section title="Aprovações">
+        <DynamicList
+          label="Aprovadores"
+          items={conteudo.aprovadores || []}
+          onAdd={() => addItem('aprovadores', { nome: '', papel: '', status: 'pendente', data: '' })}
+          onRemove={(i) => removeItem('aprovadores', i)}
+          renderItem={(item, i) => (
+            <div className="grid grid-cols-4 gap-2">
+              <Input placeholder="Nome" value={item.nome || ''} onChange={e => updateList('aprovadores', i, 'nome', e.target.value)} />
+              <Input placeholder="Papel" value={item.papel || ''} onChange={e => updateList('aprovadores', i, 'papel', e.target.value)} />
+              <Select value={item.status || 'pendente'} onValueChange={v => updateList('aprovadores', i, 'status', v)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="pendente">Pendente</SelectItem>
+                  <SelectItem value="aprovado">Aprovado</SelectItem>
+                </SelectContent>
+              </Select>
+              <Input type="date" value={item.data || ''} onChange={e => updateList('aprovadores', i, 'data', e.target.value)} />
+            </div>
+          )}
+        />
       </Section>
     </div>
   );
