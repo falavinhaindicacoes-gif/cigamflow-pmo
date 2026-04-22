@@ -11,11 +11,38 @@
     "consultant_id": {
       "type": "string"
     },
+    "client_id": {
+      "type": "string"
+    },
     "papel_no_projeto": {
       "type": "string"
     },
     "especialidade_aplicada": {
       "type": "string"
+    },
+    "data": {
+      "type": "string",
+      "format": "date",
+      "description": "Data espec\u00edfica da aloca\u00e7\u00e3o"
+    },
+    "periodo_do_dia": {
+      "type": "string",
+      "enum": [
+        "manha",
+        "tarde",
+        "noite"
+      ],
+      "description": "Turno da aloca\u00e7\u00e3o"
+    },
+    "status_faturamento": {
+      "type": "string",
+      "enum": [
+        "faturado",
+        "a_confirmar",
+        "nao_faturado"
+      ],
+      "default": "a_confirmar",
+      "description": "Status de faturamento da agenda"
     },
     "horas_semanais": {
       "type": "number",
@@ -48,7 +75,8 @@
     }
   },
   "required": [
-    "project_id",
-    "consultant_id"
+    "consultant_id",
+    "data",
+    "periodo_do_dia"
   ]
 }

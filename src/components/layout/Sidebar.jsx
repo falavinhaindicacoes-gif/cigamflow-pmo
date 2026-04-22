@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, FolderKanban, UserCog, CalendarClock,
   ListChecks, Building2, FileText, ChevronLeft, ChevronRight,
-  Menu, X, Settings, Database
+  Menu, X, Settings, Database, CalendarDays
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import NotificationBell from '@/components/layout/NotificationBell';
@@ -16,6 +16,7 @@ const navItems = [
   { path: '/allocations', icon: CalendarClock, label: 'Alocações' },
   { path: '/activities', icon: ListChecks, label: 'Lista de Atividades' },
   { path: '/reports', icon: FileText, label: 'Status Reports' },
+  { path: '/schedule', icon: CalendarDays, label: 'Agenda' },
 ];
 
 export default function Sidebar() {

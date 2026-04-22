@@ -16,6 +16,7 @@ import Activities from '@/pages/Activities';
 import StatusReports from '@/pages/StatusReports';
 import Settings from '@/pages/Settings';
 import SeedData from '@/pages/SeedData';
+import ConsultantSchedule from '@/pages/ConsultantSchedule';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -54,6 +55,7 @@ const AuthenticatedApp = () => {
         <Route path="/reports" element={<StatusReports />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/seed" element={<SeedData />} />
+        <Route path="/schedule" element={<ConsultantSchedule />} />
       </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>
