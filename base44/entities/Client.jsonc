@@ -62,6 +62,11 @@
     },
     "observacoes": {
       "type": "string"
+    },
+    "valor_hora": {
+      "type": "number",
+      "description": "Valor da hora do cliente (R$)",
+      "default": 0
     }
   },
   "required": [

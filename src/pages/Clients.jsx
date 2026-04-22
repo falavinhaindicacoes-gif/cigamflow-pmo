@@ -242,6 +242,7 @@ function ClientForm({ onSubmit, isLoading, initial = {}, submitLabel = 'Cadastra
     origem: initial.origem || '',
     vendedor_responsavel: initial.vendedor_responsavel || '',
     observacoes: initial.observacoes || '',
+    valor_hora: initial.valor_hora || '',
   });
   const u = (f, v) => setForm(p => ({ ...p, [f]: v }));
 
@@ -288,6 +289,10 @@ function ClientForm({ onSubmit, isLoading, initial = {}, submitLabel = 'Cadastra
             </SelectContent>
           </Select>
         </div>
+      </div>
+      <div>
+        <Label>Valor da Hora (R$)</Label>
+        <Input type="number" min="0" step="0.01" placeholder="0,00" value={form.valor_hora} onChange={e => u('valor_hora', parseFloat(e.target.value) || 0)} />
       </div>
       <div><Label>Observações</Label><Textarea value={form.observacoes} onChange={e => u('observacoes', e.target.value)} rows={2} /></div>
       <Button type="submit" className="w-full" disabled={isLoading}>{isLoading ? 'Salvando...' : submitLabel}</Button>
