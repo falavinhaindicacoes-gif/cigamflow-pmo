@@ -12,7 +12,6 @@ import ProjectTeam from '@/components/project/ProjectTeam';
 import ProjectTimeline from '@/components/project/ProjectTimeline';
 import ProjectDocuments from '@/components/project/ProjectDocuments';
 import ProjectStatusReports from '@/components/project/ProjectStatusReports';
-import ProjectRisks from '@/components/project/ProjectRisks';
 import ProjectHistorico from '@/components/project/ProjectHistorico';
 import ProjectAuditoria from '@/components/project/ProjectAuditoria';
 import ProjectModules from '@/components/project/ProjectModules';
@@ -118,7 +117,6 @@ export default function ProjectDetail() {
             <TabsTrigger value="overview" className="text-xs">Visão Geral</TabsTrigger>
             <TabsTrigger value="documents" className="text-xs">Documentos</TabsTrigger>
             <TabsTrigger value="activities" className="text-xs">Atividades</TabsTrigger>
-            <TabsTrigger value="risks" className="text-xs">Riscos & Bloqueios</TabsTrigger>
             <TabsTrigger value="reports" className="text-xs">Status Reports</TabsTrigger>
             <TabsTrigger value="team" className="text-xs">Equipe</TabsTrigger>
             <TabsTrigger value="timeline" className="text-xs">Cronograma</TabsTrigger>
@@ -141,13 +139,6 @@ export default function ProjectDetail() {
 
         <TabsContent value="activities">
           <ProjectActivities projectId={projectId} />
-        </TabsContent>
-
-        <TabsContent value="risks">
-          <ProjectRisks
-            projectId={projectId}
-            onNewActivity={() => setShowNewActivity(true)}
-          />
         </TabsContent>
 
         <TabsContent value="reports">
