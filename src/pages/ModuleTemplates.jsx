@@ -2,13 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
-import { Plus, Pencil, Trash2, GripVertical, ChevronDown, ChevronRight, Copy, LayoutTemplate } from 'lucide-react';
+import { Plus, Pencil, Trash2, GripVertical, ChevronDown, ChevronRight, Copy, LayoutTemplate, MoreHorizontal } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import PageHeader from '@/components/shared/PageHeader';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
 export default function ModuleTemplates() {
   const queryClient = useQueryClient();
@@ -79,6 +80,53 @@ export default function ModuleTemplates() {
   const deleteItem = useMutation({
     mutationFn: (id) => base44.entities.TemplateModuleItem.delete(id),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['templateModuleItems', selectedTemplate?.id] }),
+  });
+
+  const duplicateItem = useMutation({
+    mutationFn: async (item) => {
+      const modItems = templateItems.filter(i => i.template_module_id === item.template_module_id);
+      return base44.entities.TemplateModuleItem.create({
+        template_module_id: item.template_module_id,
+        template_id: item.template_id,
+        name: `${item.name} (cópia)`,
+        descricao: item.descricao,
+        horas_necessarias: item.horas_necessarias,
+        horas_detalhadas: item.horas_detalhadas,
+        responsavel: item.responsavel,
+        ordem: modItems.length,
+      });
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['templateModuleItems', selectedTemplate?.id] }),
+  });
+
+  const duplicateModule = useMutation({
+    mutationFn: async (mod) => {
+      const created = await base44.entities.TemplateModule.create({
+        template_id: mod.template_id,
+        name: `${mod.name} (cópia)`,
+        descricao: mod.descricao,
+        ordem: templateModules.length,
+      });
+      const modItems = templateItems.filter(i => i.template_module_id === mod.id).sort((a, b) => a.ordem - b.ordem);
+      for (let j = 0; j < modItems.length; j++) {
+        const it = modItems[j];
+        await base44.entities.TemplateModuleItem.create({
+          template_module_id: created.id,
+          template_id: mod.template_id,
+          name: it.name,
+          descricao: it.descricao,
+          horas_necessarias: it.horas_necessarias,
+          horas_detalhadas: it.horas_detalhadas,
+          responsavel: it.responsavel,
+          ordem: j,
+        });
+      }
+      return created;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['templateModules', selectedTemplate?.id] });
+      queryClient.invalidateQueries({ queryKey: ['templateModuleItems', selectedTemplate?.id] });
+    },
   });
 
   const handleModuleDragEnd = (result) => {
@@ -181,12 +229,25 @@ export default function ModuleTemplates() {
                                     <span className="text-xs text-muted-foreground">({items.length} itens)</span>
                                   </button>
                                   <div className="flex gap-1 flex-shrink-0">
-                                    <button onClick={() => { setEditingModule(mod); setShowModuleForm(true); }} className="p-1 hover:text-primary rounded text-muted-foreground">
-                                      <Pencil className="w-3.5 h-3.5" />
-                                    </button>
-                                    <button onClick={() => { if (confirm('Excluir módulo?')) deleteModule.mutate(mod.id); }} className="p-1 hover:text-destructive rounded text-muted-foreground">
-                                      <Trash2 className="w-3.5 h-3.5" />
-                                    </button>
+                                    <DropdownMenu>
+                                      <DropdownMenuTrigger asChild>
+                                        <button className="p-1 hover:text-foreground rounded text-muted-foreground">
+                                          <MoreHorizontal className="w-4 h-4" />
+                                        </button>
+                                      </DropdownMenuTrigger>
+                                      <DropdownMenuContent align="end" className="w-40">
+                                        <DropdownMenuItem onClick={() => { setEditingModule(mod); setShowModuleForm(true); }}>
+                                          <Pencil className="w-3.5 h-3.5 mr-2" /> Editar
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => duplicateModule.mutate(mod)}>
+                                          <Copy className="w-3.5 h-3.5 mr-2" /> Replicar
+                                        </DropdownMenuItem>
+                                        <DropdownMenuSeparator />
+                                        <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => { if (confirm('Excluir módulo?')) deleteModule.mutate(mod.id); }}>
+                                          <Trash2 className="w-3.5 h-3.5 mr-2" /> Excluir
+                                        </DropdownMenuItem>
+                                      </DropdownMenuContent>
+                                    </DropdownMenu>
                                   </div>
                                 </div>
 
@@ -199,21 +260,35 @@ export default function ModuleTemplates() {
                                             {items.map((item, iIdx) => (
                                               <Draggable key={item.id} draggableId={item.id} index={iIdx}>
                                                 {(pI) => (
-                                                  <div ref={pI.innerRef} {...pI.draggableProps} className="flex items-center gap-2 px-3 py-2 bg-background rounded-lg border border-border text-sm">
+                                                  <div ref={pI.innerRef} {...pI.draggableProps} className="flex items-center gap-2 px-3 py-2 bg-background rounded-lg border border-border text-sm group">
                                                     <div {...pI.dragHandleProps} className="cursor-grab text-muted-foreground">
                                                       <GripVertical className="w-3.5 h-3.5" />
                                                     </div>
                                                     <span className="flex-1 min-w-0 truncate">{item.name}</span>
+                                                    {item.responsavel && <span className="text-xs text-muted-foreground flex-shrink-0 hidden sm:block">{item.responsavel}</span>}
                                                     {item.horas_necessarias > 0 && (
                                                       <span className="text-xs text-muted-foreground flex-shrink-0">{item.horas_necessarias}h</span>
                                                     )}
-                                                    <div className="flex gap-1 flex-shrink-0">
-                                                      <button onClick={() => { setEditingItem(item); setEditingItemModuleId(mod.id); setShowItemForm(true); }} className="p-1 hover:text-primary rounded text-muted-foreground">
-                                                        <Pencil className="w-3 h-3" />
-                                                      </button>
-                                                      <button onClick={() => { if (confirm('Excluir item?')) deleteItem.mutate(item.id); }} className="p-1 hover:text-destructive rounded text-muted-foreground">
-                                                        <Trash2 className="w-3 h-3" />
-                                                      </button>
+                                                    <div className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                      <DropdownMenu>
+                                                        <DropdownMenuTrigger asChild>
+                                                          <button className="p-1 hover:text-foreground rounded text-muted-foreground">
+                                                            <MoreHorizontal className="w-3.5 h-3.5" />
+                                                          </button>
+                                                        </DropdownMenuTrigger>
+                                                        <DropdownMenuContent align="end" className="w-40">
+                                                          <DropdownMenuItem onClick={() => { setEditingItem(item); setEditingItemModuleId(mod.id); setShowItemForm(true); }}>
+                                                            <Pencil className="w-3.5 h-3.5 mr-2" /> Editar
+                                                          </DropdownMenuItem>
+                                                          <DropdownMenuItem onClick={() => duplicateItem.mutate(item)}>
+                                                            <Copy className="w-3.5 h-3.5 mr-2" /> Replicar
+                                                          </DropdownMenuItem>
+                                                          <DropdownMenuSeparator />
+                                                          <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => { if (confirm('Excluir item?')) deleteItem.mutate(item.id); }}>
+                                                            <Trash2 className="w-3.5 h-3.5 mr-2" /> Excluir
+                                                          </DropdownMenuItem>
+                                                        </DropdownMenuContent>
+                                                      </DropdownMenu>
                                                     </div>
                                                   </div>
                                                 )}
