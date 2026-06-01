@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
-import { Plus, Pencil, Trash2, GripVertical, ChevronDown, ChevronRight, LayoutTemplate, CheckCircle2, Circle, AlertCircle, XCircle } from 'lucide-react';
+import { Plus, Pencil, Trash2, GripVertical, ChevronDown, ChevronRight, LayoutTemplate, CheckCircle2, Circle, AlertCircle, XCircle, Copy, MoreHorizontal } from 'lucide-react';
 import ModuleItemSubItems from './ModuleItemSubItems';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
 const STATUS_CONFIG = {
   nao_iniciado: { label: 'Não Iniciado', color: 'bg-gray-100 text-gray-600', icon: Circle },
@@ -85,6 +86,24 @@ export default function ProjectModules({ projectId }) {
   });
   const deleteItem = useMutation({
     mutationFn: (id) => base44.entities.ModuleItem.delete(id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['moduleItems', projectId] }),
+  });
+
+  const duplicateItem = useMutation({
+    mutationFn: async (item) => {
+      const modItems = items.filter(i => i.project_module_id === item.project_module_id);
+      return base44.entities.ModuleItem.create({
+        project_module_id: item.project_module_id,
+        project_id: projectId,
+        name: `${item.name} (cópia)`,
+        descricao: item.descricao,
+        horas_necessarias: item.horas_necessarias,
+        horas_detalhadas: item.horas_detalhadas,
+        responsavel: item.responsavel,
+        status: 'nao_iniciado',
+        ordem: modItems.length,
+      });
+    },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['moduleItems', projectId] }),
   });
 
@@ -291,13 +310,26 @@ export default function ProjectModules({ projectId }) {
                                                    )}
                                                    {item.responsavel && <span className="text-xs text-muted-foreground flex-shrink-0 hidden sm:block">{item.responsavel}</span>}
                                                    {item.horas_necessarias > 0 && <span className="text-xs font-medium text-muted-foreground flex-shrink-0">{item.horas_necessarias}h</span>}
-                                                   <div className="flex gap-1 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                     <button onClick={() => { setEditingItem(item); setEditingItemModuleId(mod.id); setShowItemForm(true); }} className="p-1 hover:text-primary rounded text-muted-foreground">
-                                                       <Pencil className="w-3 h-3" />
-                                                     </button>
-                                                     <button onClick={() => { if (confirm('Excluir item?')) deleteItem.mutate(item.id); }} className="p-1 hover:text-destructive rounded text-muted-foreground">
-                                                       <Trash2 className="w-3 h-3" />
-                                                     </button>
+                                                   <div className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                     <DropdownMenu>
+                                                       <DropdownMenuTrigger asChild>
+                                                         <button className="p-1 hover:text-foreground rounded text-muted-foreground">
+                                                           <MoreHorizontal className="w-3.5 h-3.5" />
+                                                         </button>
+                                                       </DropdownMenuTrigger>
+                                                       <DropdownMenuContent align="end" className="w-40">
+                                                         <DropdownMenuItem onClick={() => { setEditingItem(item); setEditingItemModuleId(mod.id); setShowItemForm(true); }}>
+                                                           <Pencil className="w-3.5 h-3.5 mr-2" /> Editar
+                                                         </DropdownMenuItem>
+                                                         <DropdownMenuItem onClick={() => duplicateItem.mutate(item)}>
+                                                           <Copy className="w-3.5 h-3.5 mr-2" /> Replicar
+                                                         </DropdownMenuItem>
+                                                         <DropdownMenuSeparator />
+                                                         <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => { if (confirm('Excluir item?')) deleteItem.mutate(item.id); }}>
+                                                           <Trash2 className="w-3.5 h-3.5 mr-2" /> Excluir
+                                                         </DropdownMenuItem>
+                                                       </DropdownMenuContent>
+                                                     </DropdownMenu>
                                                    </div>
                                                  </div>
                                                  <ModuleItemSubItems item={item} projectId={projectId} />
