@@ -34,6 +34,20 @@
       ],
       "description": "Turno da aloca\u00e7\u00e3o"
     },
+    "tipo_agenda": {
+      "type": "string",
+      "enum": [
+        "projeto_modulos",
+        "atividades_avulsas",
+        "outros"
+      ],
+      "default": "projeto_modulos",
+      "description": "Prop\u00f3sito da agenda: m\u00f3dulos do projeto, atividades avulsas ou outro"
+    },
+    "activity_id": {
+      "type": "string",
+      "description": "ID da Activity vinculada quando tipo_agenda = atividades_avulsas"
+    },
     "status_faturamento": {
       "type": "string",
       "enum": [
