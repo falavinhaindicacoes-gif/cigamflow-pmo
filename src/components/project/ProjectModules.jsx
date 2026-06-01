@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
+import { updateProjectMetrics } from '@/utils/projectMetrics';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { Plus, Pencil, Trash2, GripVertical, ChevronDown, ChevronRight, LayoutTemplate, CheckCircle2, Circle, AlertCircle, XCircle, Copy, MoreHorizontal } from 'lucide-react';
 import ModuleItemSubItems from './ModuleItemSubItems';
@@ -76,18 +77,29 @@ export default function ProjectModules({ projectId }) {
   });
 
   // Item mutations
-  const createItem = useMutation({
-    mutationFn: (d) => base44.entities.ModuleItem.create(d),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['moduleItems', projectId] }); setShowItemForm(false); setEditingItem(null); },
-  });
-  const updateItem = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.ModuleItem.update(id, data),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['moduleItems', projectId] }),
-  });
-  const deleteItem = useMutation({
-    mutationFn: (id) => base44.entities.ModuleItem.delete(id),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['moduleItems', projectId] }),
-  });
+   const createItem = useMutation({
+     mutationFn: (d) => base44.entities.ModuleItem.create(d),
+     onSuccess: () => {
+       queryClient.invalidateQueries({ queryKey: ['moduleItems', projectId] });
+       updateProjectMetrics(projectId);
+       setShowItemForm(false);
+       setEditingItem(null);
+     },
+   });
+   const updateItem = useMutation({
+     mutationFn: ({ id, data }) => base44.entities.ModuleItem.update(id, data),
+     onSuccess: () => {
+       queryClient.invalidateQueries({ queryKey: ['moduleItems', projectId] });
+       updateProjectMetrics(projectId);
+     },
+   });
+   const deleteItem = useMutation({
+     mutationFn: (id) => base44.entities.ModuleItem.delete(id),
+     onSuccess: () => {
+       queryClient.invalidateQueries({ queryKey: ['moduleItems', projectId] });
+       updateProjectMetrics(projectId);
+     },
+   });
 
   const duplicateItem = useMutation({
     mutationFn: async (item) => {
@@ -104,7 +116,10 @@ export default function ProjectModules({ projectId }) {
         ordem: modItems.length,
       });
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['moduleItems', projectId] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['moduleItems', projectId] });
+      updateProjectMetrics(projectId);
+    },
   });
 
   const handleModuleDragEnd = (result) => {
