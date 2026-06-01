@@ -123,10 +123,12 @@ export default function Activities() {
         projects={projects}
         consultants={consultants}
         onSubmit={(data) => {
+          // Remove campos vazios para não conflitar com validações do schema
+          const clean = Object.fromEntries(Object.entries(data).filter(([, v]) => v !== '' && v !== null && v !== undefined));
           if (editActivity) {
-            updateMutation.mutate({ id: editActivity.id, data });
+            updateMutation.mutate({ id: editActivity.id, data: clean });
           } else {
-            createMutation.mutate(data);
+            createMutation.mutate(clean);
           }
         }}
         isLoading={createMutation.isPending || updateMutation.isPending}
