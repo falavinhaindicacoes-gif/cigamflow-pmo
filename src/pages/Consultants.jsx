@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { Plus, Search, UserCog, Pencil, FolderKanban, Mail, Phone, CheckSquare, Square } from 'lucide-react';
+import { Plus, Search, UserCog, Pencil, FolderKanban, Mail, Phone, CheckSquare, Square, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -63,6 +63,18 @@ export default function Consultants() {
     mutationFn: ({ id, data }) => base44.entities.Consultant.update(id, data),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['consultants'] }); setEditing(null); },
   });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id) => base44.entities.Consultant.delete(id),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['consultants'] }); setSelected(null); },
+  });
+
+  const handleDelete = (consultant, e) => {
+    if (e) e.stopPropagation();
+    if (window.confirm(`Excluir o consultor "${consultant.name}"? Esta ação não pode ser desfeita.`)) {
+      deleteMutation.mutate(consultant.id);
+    }
+  };
 
   const espLabel = (val) => ESPECIALIDADES.find(e => e.value === val)?.label || val;
 
@@ -144,6 +156,9 @@ export default function Consultants() {
                     <button onClick={e => { e.stopPropagation(); setEditing(consultant); }} className="p-1.5 hover:bg-muted rounded-lg">
                       <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
                     </button>
+                    <button onClick={e => handleDelete(consultant, e)} className="p-1.5 hover:bg-red-50 rounded-lg">
+                      <Trash2 className="w-3.5 h-3.5 text-red-400" />
+                    </button>
                     <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
                       consultant.status === 'ativo' ? 'bg-green-100 text-green-700' :
                       consultant.status === 'ferias' ? 'bg-blue-100 text-blue-700' :
@@ -201,9 +216,14 @@ export default function Consultants() {
                 </p>
               </div>
             </div>
-            <Button size="sm" variant="outline" onClick={() => setEditing(selectedConsultant)} className="gap-2">
-              <Pencil className="w-3.5 h-3.5" /> Editar
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button size="sm" variant="outline" onClick={() => setEditing(selectedConsultant)} className="gap-2">
+                <Pencil className="w-3.5 h-3.5" /> Editar
+              </Button>
+              <Button size="sm" variant="outline" onClick={(e) => handleDelete(selectedConsultant, e)} className="gap-2 text-red-600 border-red-200 hover:bg-red-50">
+                <Trash2 className="w-3.5 h-3.5" /> Excluir
+              </Button>
+            </div>
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4">
