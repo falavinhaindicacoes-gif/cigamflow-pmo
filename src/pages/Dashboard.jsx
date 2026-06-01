@@ -28,11 +28,11 @@ export default function Dashboard() {
     moduleItems.filter(i => i.project_id === projectId).reduce((sum, i) => sum + (i.horas_necessarias || 0), 0);
 
   const activeProjectIds = new Set(activeProjects.map(p => p.id));
+  const getHorasRealizadas = (projectId) =>
+    moduleItems.filter(i => i.project_id === projectId && i.status === 'concluido').reduce((sum, i) => sum + (i.horas_necessarias || 0), 0);
+
   const totalHorasPrevistas = activeProjects.reduce((sum, p) => sum + getHorasPrevistas(p.id), 0);
-  // Horas realizadas = soma das horas das alocações vinculadas a projetos ativos
-  const totalHorasRealizadas = allocations
-    .filter(a => a.project_id && activeProjectIds.has(a.project_id))
-    .reduce((sum, a) => sum + (a.horas_semanais || 0), 0);
+  const totalHorasRealizadas = activeProjects.reduce((sum, p) => sum + getHorasRealizadas(p.id), 0);
 
   // Activities
   const getClientName = (id) => clients.find(c => c.id === id)?.razao_social || '-';
@@ -64,9 +64,7 @@ export default function Dashboard() {
               <div className="space-y-3">
                 {activeProjects.map(p => {
                   const horasPrev = getHorasPrevistas(p.id);
-                  const horasReal = allocations
-                    .filter(a => a.project_id === p.id)
-                    .reduce((sum, a) => sum + (a.horas_semanais || 0), 0);
+                  const horasReal = getHorasRealizadas(p.id);
                   const pct = horasPrev > 0 ? Math.min(Math.round(horasReal / horasPrev * 100), 100) : 0;
                   const clientName = clients.find(c => c.id === p.client_id)?.razao_social || '-';
                   return (
