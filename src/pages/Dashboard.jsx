@@ -66,55 +66,27 @@ export default function Dashboard() {
 
         {/* EXECUTIVO */}
         <TabsContent value="executivo" className="space-y-6 mt-4">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <StatCard title="Projetos Ativos" value={activeProjects.length} icon={FolderKanban} subtitle={`${projects.length} total na carteira`} />
             <StatCard title="Projetos Pausados" value={pausedProjects.length} icon={PauseCircle} subtitle="Aguardando retomada" />
             <StatCard title="Projetos Cancelados" value={cancelledProjects.length} icon={XCircle} subtitle="Encerrados" />
-            <StatCard title="Itens Abertos" value={openActivities.length} icon={ListChecks} subtitle={`${overdueActivities.length} atrasados`} />
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Saúde da carteira */}
+            {/* Projetos Ativos */}
             <div className="bg-card rounded-xl border p-5">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="font-semibold text-sm">Saúde da Carteira</h3>
+                <h3 className="font-semibold text-sm">Projetos Ativos</h3>
                 <Link to="/projects" className="text-xs text-primary hover:underline flex items-center gap-1">Ver todos <ArrowRight className="w-3 h-3" /></Link>
               </div>
-              <div className="space-y-3">
-                {[
-                  { label: 'Saudáveis', count: projectsByHealth.verde, color: 'bg-green-500' },
-                  { label: 'Atenção', count: projectsByHealth.amarelo, color: 'bg-yellow-500' },
-                  { label: 'Críticos', count: projectsByHealth.vermelho, color: 'bg-red-500' },
-                ].map(item => (
-                  <div key={item.label} className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className={`w-3 h-3 rounded-full ${item.color}`} />
-                      <span className="text-sm">{item.label}</span>
-                    </div>
-                    <span className="text-lg font-bold">{item.count}</span>
-                  </div>
-                ))}
-              </div>
-              {projects.length > 0 && (
-                <div className="mt-4 h-3 rounded-full bg-muted overflow-hidden flex">
-                  <div className="bg-green-500 h-full" style={{ width: `${(projectsByHealth.verde / projects.length) * 100}%` }} />
-                  <div className="bg-yellow-500 h-full" style={{ width: `${(projectsByHealth.amarelo / projects.length) * 100}%` }} />
-                  <div className="bg-red-500 h-full" style={{ width: `${(projectsByHealth.vermelho / projects.length) * 100}%` }} />
-                </div>
-              )}
-            </div>
-
-            {/* Projetos críticos */}
-            <div className="bg-card rounded-xl border p-5">
-              <h3 className="font-semibold text-sm mb-4">Projetos Críticos</h3>
-              {criticalProjects.length === 0 ? (
-                <p className="text-sm text-muted-foreground py-8 text-center">Nenhum projeto crítico</p>
+              {activeProjects.length === 0 ? (
+                <p className="text-sm text-muted-foreground py-8 text-center">Nenhum projeto ativo</p>
               ) : (
                 <div className="space-y-2">
-                  {criticalProjects.slice(0, 5).map(p => (
-                    <Link key={p.id} to={`/projects/${p.id}`} className="flex items-center justify-between p-2.5 rounded-lg bg-red-50 border border-red-200 hover:shadow-sm transition-shadow">
-                      <div>
-                        <p className="text-sm font-medium">{p.name}</p>
+                  {activeProjects.slice(0, 6).map(p => (
+                    <Link key={p.id} to={`/projects/${p.id}`} className="flex items-center justify-between p-2.5 rounded-lg bg-green-50 border border-green-200 hover:shadow-sm transition-shadow">
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium truncate">{p.name}</p>
                         <p className="text-xs text-muted-foreground">{getClientName(p.client_id)} · {getFaseLabel(p.fase_atual)}</p>
                       </div>
                       <HealthBadge saude={p.saude} />
@@ -124,7 +96,7 @@ export default function Dashboard() {
               )}
             </div>
 
-            {/* Projetos pausados */}
+            {/* Projetos Pausados */}
             <div className="bg-card rounded-xl border p-5">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-semibold text-sm">Projetos Pausados</h3>
@@ -137,10 +109,36 @@ export default function Dashboard() {
                 </div>
               ) : (
                 <div className="space-y-2">
-                  {pausedProjects.slice(0, 5).map(p => (
+                  {pausedProjects.slice(0, 6).map(p => (
                     <Link key={p.id} to={`/projects/${p.id}`} className="flex items-center justify-between p-2.5 rounded-lg bg-yellow-50 border border-yellow-200 hover:shadow-sm transition-shadow">
-                      <div>
-                        <p className="text-sm font-medium">{p.name}</p>
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium truncate">{p.name}</p>
+                        <p className="text-xs text-muted-foreground">{getClientName(p.client_id)} · {getFaseLabel(p.fase_atual)}</p>
+                      </div>
+                      <HealthBadge saude={p.saude} />
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Projetos Cancelados */}
+            <div className="bg-card rounded-xl border p-5">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-semibold text-sm">Projetos Cancelados</h3>
+                <Link to="/projects" className="text-xs text-primary hover:underline flex items-center gap-1">Ver todos <ArrowRight className="w-3 h-3" /></Link>
+              </div>
+              {cancelledProjects.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground text-sm">
+                  <CheckCircle2 className="w-8 h-8 mx-auto mb-2 text-green-500" />
+                  Nenhum projeto cancelado
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {cancelledProjects.slice(0, 6).map(p => (
+                    <Link key={p.id} to={`/projects/${p.id}`} className="flex items-center justify-between p-2.5 rounded-lg bg-red-50 border border-red-200 hover:shadow-sm transition-shadow">
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium truncate">{p.name}</p>
                         <p className="text-xs text-muted-foreground">{getClientName(p.client_id)} · {getFaseLabel(p.fase_atual)}</p>
                       </div>
                       <HealthBadge saude={p.saude} />
