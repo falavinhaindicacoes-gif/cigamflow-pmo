@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import {
-  Building2, Users, Shield, Plus, Search, Pencil, Check, X, AlertCircle
+  Building2, Users, Shield, Plus, Search, Pencil, Check, X, AlertCircle, Tag, Trash2
 } from 'lucide-react';
 import PageHeader from '@/components/shared/PageHeader';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -23,6 +23,7 @@ export default function Settings() {
           <TabsTrigger value="empresas" className="text-xs">Empresas</TabsTrigger>
           <TabsTrigger value="usuarios" className="text-xs">Usuários</TabsTrigger>
           <TabsTrigger value="parametros" className="text-xs">Parâmetros</TabsTrigger>
+          <TabsTrigger value="categorias" className="text-xs">Categorias de Template</TabsTrigger>
         </TabsList>
 
         <TabsContent value="empresas" className="mt-4">
@@ -35,6 +36,10 @@ export default function Settings() {
 
         <TabsContent value="parametros" className="mt-4">
           <ParametrosTab />
+        </TabsContent>
+
+        <TabsContent value="categorias" className="mt-4">
+          <CategoriasTemplateTab />
         </TabsContent>
       </Tabs>
     </div>
@@ -228,6 +233,72 @@ function UsuariosTab() {
           </form>
         </DialogContent>
       </Dialog>
+    </div>
+  );
+}
+
+function CategoriasTemplateTab() {
+  const [newName, setNewName] = useState('');
+  const queryClient = useQueryClient();
+
+  const { data: categories = [], isLoading } = useQuery({
+    queryKey: ['templateCategories'],
+    queryFn: () => base44.entities.TemplateCategory.list('ordem', 200),
+  });
+
+  const createMutation = useMutation({
+    mutationFn: (name) => base44.entities.TemplateCategory.create({ name, ordem: categories.length }),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['templateCategories'] }); setNewName(''); },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id) => base44.entities.TemplateCategory.delete(id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['templateCategories'] }),
+  });
+
+  return (
+    <div className="space-y-4 max-w-lg">
+      <div className="bg-card border rounded-xl p-5">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center">
+            <Tag className="w-4 h-4 text-primary" />
+          </div>
+          <div>
+            <h3 className="font-semibold text-sm">Categorias de Template</h3>
+            <p className="text-xs text-muted-foreground">Categorias disponíveis na criação de templates</p>
+          </div>
+        </div>
+
+        <div className="flex gap-2 mb-4">
+          <Input
+            placeholder="Nova categoria..."
+            value={newName}
+            onChange={e => setNewName(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter' && newName.trim()) createMutation.mutate(newName.trim()); }}
+          />
+          <Button onClick={() => { if (newName.trim()) createMutation.mutate(newName.trim()); }} disabled={!newName.trim() || createMutation.isPending}>
+            <Plus className="w-4 h-4" />
+          </Button>
+        </div>
+
+        <div className="space-y-1.5">
+          {isLoading ? <p className="text-sm text-muted-foreground">Carregando...</p> : null}
+          {categories.map(cat => (
+            <div key={cat.id} className="flex items-center justify-between px-3 py-2 bg-muted/40 rounded-lg">
+              <span className="text-sm">{cat.name}</span>
+              <button
+                onClick={() => { if (confirm(`Excluir a categoria "${cat.name}"?`)) deleteMutation.mutate(cat.id); }}
+                className="p-1 hover:text-destructive text-muted-foreground rounded transition-colors"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          ))}
+          {!isLoading && categories.length === 0 && (
+            <p className="text-sm text-muted-foreground text-center py-4">Nenhuma categoria cadastrada</p>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

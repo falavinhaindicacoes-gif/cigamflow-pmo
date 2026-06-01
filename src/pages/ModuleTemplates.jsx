@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import PageHeader from '@/components/shared/PageHeader';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
@@ -367,13 +368,29 @@ function TemplateFormDialog({ open, onClose, initial, onSubmit }) {
   useEffect(() => {
     setForm({ name: initial?.name || '', descricao: initial?.descricao || '', categoria: initial?.categoria || '' });
   }, [initial, open]);
+
+  const { data: categories = [] } = useQuery({
+    queryKey: ['templateCategories'],
+    queryFn: () => base44.entities.TemplateCategory.list('ordem', 100),
+  });
+
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
       <DialogContent>
         <DialogHeader><DialogTitle>{initial ? 'Editar Template' : 'Novo Template'}</DialogTitle></DialogHeader>
         <div className="space-y-3">
           <div><Label>Nome *</Label><Input value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} /></div>
-          <div><Label>Categoria</Label><Input value={form.categoria} onChange={e => setForm(p => ({ ...p, categoria: e.target.value }))} placeholder="Ex: Financeiro, RH..." /></div>
+          <div>
+            <Label>Categoria</Label>
+            <Select value={form.categoria || ''} onValueChange={v => setForm(p => ({ ...p, categoria: v }))}>
+              <SelectTrigger><SelectValue placeholder="Selecione uma categoria..." /></SelectTrigger>
+              <SelectContent>
+                {categories.map(c => (
+                  <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
           <div><Label>Descrição</Label><Textarea value={form.descricao} onChange={e => setForm(p => ({ ...p, descricao: e.target.value }))} rows={2} /></div>
           <div className="flex gap-2 justify-end pt-2">
             <Button variant="outline" onClick={onClose}>Cancelar</Button>
