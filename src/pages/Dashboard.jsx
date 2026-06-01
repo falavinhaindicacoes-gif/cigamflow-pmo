@@ -4,8 +4,8 @@ import { base44 } from '@/api/base44Client';
 import { Link } from 'react-router-dom';
 import {
   FolderKanban, Users, UserCog, AlertTriangle, ListChecks,
-  ArrowRight, ShieldAlert, TrendingUp, Clock, CheckCircle2,
-  BarChart2, Target, Zap
+  ArrowRight, TrendingUp, Clock, CheckCircle2, PauseCircle,
+  XCircle, BarChart2, Zap
 } from 'lucide-react';
 import StatCard from '@/components/shared/StatCard';
 import HealthBadge from '@/components/shared/HealthBadge';
@@ -13,7 +13,7 @@ import CapacityGauge from '@/components/shared/CapacityGauge';
 import PageHeader from '@/components/shared/PageHeader';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { FASES_PROJETO, getFaseLabel, getActivityStatusInfo } from '@/lib/constants';
-import { format, differenceInDays, startOfWeek, endOfWeek } from 'date-fns';
+import { differenceInDays, startOfWeek, endOfWeek } from 'date-fns';
 
 export default function Dashboard() {
   const { data: projects = [] } = useQuery({ queryKey: ['projects'], queryFn: () => base44.entities.Project.list('-created_date', 100) });
@@ -22,16 +22,18 @@ export default function Dashboard() {
   const { data: activities = [] } = useQuery({ queryKey: ['activities'], queryFn: () => base44.entities.Activity.list('-created_date', 500) });
   const { data: clients = [] } = useQuery({ queryKey: ['clients'], queryFn: () => base44.entities.Client.list('-created_date', 100) });
 
+  // Projects by status
   const activeProjects = projects.filter(p => p.status === 'em_andamento');
+  const pausedProjects = projects.filter(p => p.status === 'pausado');
+  const cancelledProjects = projects.filter(p => p.status === 'cancelado');
   const criticalProjects = projects.filter(p => p.saude === 'vermelho');
+
+  // Activities
   const openActivities = activities.filter(a => a.status !== 'concluido' && a.status !== 'cancelado');
   const overdueActivities = openActivities.filter(a => a.prazo && new Date(a.prazo) < new Date());
-  const blockingGoLive = openActivities.filter(a => a.bloqueia_go_live);
-  const blockingPhase = openActivities.filter(a => a.bloqueia_fase);
   const criticalActivities = openActivities.filter(a => a.criticidade === 'critica');
 
-  // Capacidade baseada exclusivamente na agenda da semana atual
-  // 3 turnos/dia × 5 dias úteis = 15 turnos = 100% de capacidade
+  // Capacidade baseada na agenda da semana atual
   const TURNOS_SEMANA_CHEIA = 15;
   const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 });
   const weekEnd = endOfWeek(new Date(), { weekStartsOn: 1 });
@@ -59,13 +61,6 @@ export default function Dashboard() {
     vermelho: projects.filter(p => p.saude === 'vermelho').length,
   };
 
-  const goLiveSoon = activeProjects.filter(p => {
-    if (!p.data_prevista_termino) return false;
-    const days = differenceInDays(new Date(p.data_prevista_termino), new Date());
-    return days >= 0 && days <= 30;
-  });
-
-  // Activities by status for operational view
   const actByStatus = {
     aberto: openActivities.filter(a => a.status === 'aberto').length,
     aguardando_cliente: openActivities.filter(a => a.status === 'aguardando_cliente').length,
@@ -73,7 +68,6 @@ export default function Dashboard() {
     validar_solucao: openActivities.filter(a => a.status === 'validar_solucao').length,
   };
 
-  // Avg resolution time
   const concluded = activities.filter(a => a.status === 'concluido' && a.data_conclusao && a.created_date);
   const avgResolution = concluded.length > 0
     ? Math.round(concluded.reduce((s, a) => s + differenceInDays(new Date(a.data_conclusao), new Date(a.created_date)), 0) / concluded.length)
@@ -84,7 +78,7 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6 lg:pl-0 pl-12">
-      <PageHeader title="Dashboard PMO" description="Visão consolidada da carteira de projetos CIGAM" />
+      <PageHeader title="Dashboard PMO" description="Visão consolidada da carteira de projetos" />
 
       <Tabs defaultValue="executivo">
         <TabsList className="bg-muted/50 p-1 h-auto">
@@ -97,13 +91,14 @@ export default function Dashboard() {
         {/* EXECUTIVO */}
         <TabsContent value="executivo" className="space-y-6 mt-4">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <StatCard title="Projetos Ativos" value={activeProjects.length} icon={FolderKanban} subtitle={`${projects.length} total`} />
+            <StatCard title="Projetos Ativos" value={activeProjects.length} icon={FolderKanban} subtitle={`${projects.length} total na carteira`} />
+            <StatCard title="Projetos Pausados" value={pausedProjects.length} icon={PauseCircle} subtitle="Aguardando retomada" />
+            <StatCard title="Projetos Cancelados" value={cancelledProjects.length} icon={XCircle} subtitle="Encerrados" />
             <StatCard title="Itens Abertos" value={openActivities.length} icon={ListChecks} subtitle={`${overdueActivities.length} atrasados`} />
-            <StatCard title="Bloqueios Go-Live" value={blockingGoLive.length} icon={ShieldAlert} subtitle="Ação imediata" />
-            <StatCard title="Go Live em 30d" value={goLiveSoon.length} icon={Target} subtitle="Projetos próximos" />
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Saúde da carteira */}
             <div className="bg-card rounded-xl border p-5">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-semibold text-sm">Saúde da Carteira</h3>
@@ -133,6 +128,7 @@ export default function Dashboard() {
               )}
             </div>
 
+            {/* Projetos críticos */}
             <div className="bg-card rounded-xl border p-5">
               <h3 className="font-semibold text-sm mb-4">Projetos Críticos</h3>
               {criticalProjects.length === 0 ? (
@@ -152,43 +148,36 @@ export default function Dashboard() {
               )}
             </div>
 
+            {/* Projetos pausados */}
             <div className="bg-card rounded-xl border p-5">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="font-semibold text-sm">Bloqueios Ativos</h3>
-                <Link to="/activities" className="text-xs text-primary hover:underline flex items-center gap-1">Ver todos <ArrowRight className="w-3 h-3" /></Link>
+                <h3 className="font-semibold text-sm">Projetos Pausados</h3>
+                <Link to="/projects" className="text-xs text-primary hover:underline flex items-center gap-1">Ver todos <ArrowRight className="w-3 h-3" /></Link>
               </div>
-              {blockingGoLive.length === 0 && blockingPhase.length === 0 ? (
+              {pausedProjects.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground text-sm">
                   <CheckCircle2 className="w-8 h-8 mx-auto mb-2 text-green-500" />
-                  Sem bloqueios ativos
+                  Nenhum projeto pausado
                 </div>
               ) : (
                 <div className="space-y-2">
-                  {blockingGoLive.slice(0, 4).map(a => (
-                    <div key={a.id} className="flex items-start gap-2 p-2 rounded-lg bg-red-50 border border-red-100">
-                      <ShieldAlert className="w-3.5 h-3.5 text-red-500 mt-0.5 flex-shrink-0" />
+                  {pausedProjects.slice(0, 5).map(p => (
+                    <Link key={p.id} to={`/projects/${p.id}`} className="flex items-center justify-between p-2.5 rounded-lg bg-yellow-50 border border-yellow-200 hover:shadow-sm transition-shadow">
                       <div>
-                        <p className="text-xs font-medium line-clamp-1">{a.titulo}</p>
-                        <p className="text-[11px] text-muted-foreground">{getProjectName(a.project_id)}</p>
+                        <p className="text-sm font-medium">{p.name}</p>
+                        <p className="text-xs text-muted-foreground">{getClientName(p.client_id)} · {getFaseLabel(p.fase_atual)}</p>
                       </div>
-                    </div>
-                  ))}
-                  {blockingPhase.slice(0, 2).map(a => (
-                    <div key={a.id} className="flex items-start gap-2 p-2 rounded-lg bg-orange-50 border border-orange-100">
-                      <AlertTriangle className="w-3.5 h-3.5 text-orange-500 mt-0.5 flex-shrink-0" />
-                      <div>
-                        <p className="text-xs font-medium line-clamp-1">{a.titulo}</p>
-                        <p className="text-[11px] text-muted-foreground">{getProjectName(a.project_id)}</p>
-                      </div>
-                    </div>
+                      <HealthBadge saude={p.saude} />
+                    </Link>
                   ))}
                 </div>
               )}
             </div>
           </div>
 
+          {/* Projetos por fase */}
           <div className="bg-card rounded-xl border p-5">
-            <h3 className="font-semibold text-sm mb-4">Projetos por Fase</h3>
+            <h3 className="font-semibold text-sm mb-4">Projetos Ativos por Fase</h3>
             <div className="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-9 gap-2">
               {FASES_PROJETO.map(fase => {
                 const count = activeProjects.filter(p => p.fase_atual === fase.value).length;
@@ -213,7 +202,7 @@ export default function Dashboard() {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Projects with financial */}
+            {/* Financeiro por projeto */}
             <div className="bg-card rounded-xl border p-5">
               <h3 className="font-semibold text-sm mb-4">Financeiro por Projeto</h3>
               <div className="space-y-3">
@@ -245,14 +234,13 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* Activities by project */}
+            {/* Itens abertos por projeto */}
             <div className="bg-card rounded-xl border p-5">
               <h3 className="font-semibold text-sm mb-4">Itens Abertos por Projeto</h3>
               <div className="space-y-2">
                 {activeProjects.slice(0, 7).map(p => {
                   const pActs = openActivities.filter(a => a.project_id === p.id);
                   const pOverdue = pActs.filter(a => a.prazo && new Date(a.prazo) < new Date());
-                  const pBlocking = pActs.filter(a => a.bloqueia_go_live || a.bloqueia_fase);
                   return (
                     <Link key={p.id} to={`/projects/${p.id}`} className="flex items-center justify-between p-2.5 rounded-lg hover:bg-muted/30 transition-colors group">
                       <div className="flex items-center gap-2 min-w-0">
@@ -260,7 +248,6 @@ export default function Dashboard() {
                         <span className="text-sm truncate">{p.name}</span>
                       </div>
                       <div className="flex items-center gap-2 flex-shrink-0">
-                        {pBlocking.length > 0 && <span className="text-[10px] px-1.5 py-0.5 bg-red-100 text-red-700 rounded-full">{pBlocking.length} bloq</span>}
                         {pOverdue.length > 0 && <span className="text-[10px] px-1.5 py-0.5 bg-yellow-100 text-yellow-700 rounded-full">{pOverdue.length} venc</span>}
                         <span className="text-sm font-bold text-muted-foreground">{pActs.length}</span>
                       </div>
@@ -271,7 +258,7 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Overdue items */}
+          {/* Itens atrasados */}
           <div className="bg-card rounded-xl border p-5">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-semibold text-sm">Itens Atrasados</h3>
@@ -329,20 +316,19 @@ export default function Dashboard() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="bg-card rounded-xl border p-5 lg:col-span-2">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="font-semibold text-sm">Itens Críticos & Bloqueantes</h3>
+                <h3 className="font-semibold text-sm">Itens Críticos</h3>
                 <Link to="/activities" className="text-xs text-primary hover:underline flex items-center gap-1">Lista completa <ArrowRight className="w-3 h-3" /></Link>
               </div>
               <div className="space-y-2">
-                {[...blockingGoLive, ...criticalActivities.filter(a => !a.bloqueia_go_live)].slice(0, 8).map(a => {
+                {criticalActivities.slice(0, 8).map(a => {
                   const isOverdue = a.prazo && new Date(a.prazo) < new Date();
                   return (
-                    <div key={a.id} className={`p-3 rounded-lg border ${a.bloqueia_go_live ? 'bg-red-50 border-red-200' : isOverdue ? 'bg-orange-50 border-orange-200' : 'bg-muted/30 border-border'}`}>
+                    <div key={a.id} className={`p-3 rounded-lg border ${isOverdue ? 'bg-orange-50 border-orange-200' : 'bg-muted/30 border-border'}`}>
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
                             <span className="text-sm font-medium">{a.titulo}</span>
-                            {a.bloqueia_go_live && <span className="text-[10px] px-1.5 py-0.5 bg-red-100 text-red-700 rounded-full font-medium">Bloqueia GoLive</span>}
-                            {a.criticidade === 'critica' && <span className="text-[10px] px-1.5 py-0.5 bg-purple-100 text-purple-700 rounded-full font-medium">Crítica</span>}
+                            <span className="text-[10px] px-1.5 py-0.5 bg-purple-100 text-purple-700 rounded-full font-medium">Crítica</span>
                           </div>
                           <p className="text-xs text-muted-foreground mt-0.5">{getProjectName(a.project_id)} · {a.responsavel || 'Sem responsável'}</p>
                         </div>
@@ -353,10 +339,10 @@ export default function Dashboard() {
                     </div>
                   );
                 })}
-                {blockingGoLive.length === 0 && criticalActivities.length === 0 && (
+                {criticalActivities.length === 0 && (
                   <div className="text-center py-10 text-muted-foreground">
                     <CheckCircle2 className="w-10 h-10 mx-auto mb-2 text-green-500" />
-                    Nenhum item crítico ou bloqueante
+                    Nenhum item crítico
                   </div>
                 )}
               </div>
@@ -418,7 +404,6 @@ export default function Dashboard() {
                 const occ = getOccupancy(c.id);
                 const weekAllocs = getWeekAllocations(c.id);
                 const turnos = weekAllocs.length;
-                // Projetos únicos alocados na semana
                 const projIds = [...new Set(weekAllocs.map(a => a.project_id).filter(Boolean))];
                 return (
                   <div key={c.id} className={`p-4 rounded-lg border bg-background ${occ > 100 ? 'border-red-200' : occ > 80 ? 'border-yellow-200' : 'border-border'}`}>
