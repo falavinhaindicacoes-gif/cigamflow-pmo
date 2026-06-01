@@ -3,24 +3,32 @@ import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Link } from 'react-router-dom';
 import {
-  FolderKanban, ArrowRight, CheckCircle2, PauseCircle, XCircle
+  FolderKanban, ArrowRight, CheckCircle2, PauseCircle, XCircle, Clock
 } from 'lucide-react';
 import StatCard from '@/components/shared/StatCard';
 import HealthBadge from '@/components/shared/HealthBadge';
 import PageHeader from '@/components/shared/PageHeader';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Progress } from '@/components/ui/progress';
 import { FASES_PROJETO, getFaseLabel } from '@/lib/constants';
 
 export default function Dashboard() {
-  const { data: projects = [] } = useQuery({ queryKey: ['projects'], queryFn: () => base44.entities.Project.list('-created_date', 100) });
-  const { data: clients = [] } = useQuery({ queryKey: ['clients'], queryFn: () => base44.entities.Client.list('-created_date', 100) });
-
+  const { data: projects = [] } = useQuery({ queryKey: ['projects'], queryFn: () => base44.entities.Project.list('-created_date', 100), staleTime: 0 });
+  const { data: clients = [] } = useQuery({ queryKey: ['clients'], queryFn: () => base44.entities.Client.list('-created_date', 100), staleTime: 0 });
+  const { data: allocations = [] } = useQuery({ queryKey: ['allocations'], queryFn: () => base44.entities.Allocation.list('-created_date', 500), staleTime: 0 });
 
   // Projects by status
   const activeProjects = projects.filter(p => p.status === 'em_andamento');
   const pausedProjects = projects.filter(p => p.status === 'pausado');
   const cancelledProjects = projects.filter(p => p.status === 'cancelado');
-  const criticalProjects = projects.filter(p => p.saude === 'vermelho');
+
+  // Horas consolidadas dos projetos ativos
+  const totalHorasPrevistas = activeProjects.reduce((sum, p) => sum + (p.horas_previstas || 0), 0);
+  // Horas realizadas = soma das horas das alocações vinculadas a projetos ativos
+  const activeProjectIds = new Set(activeProjects.map(p => p.id));
+  const totalHorasRealizadas = allocations
+    .filter(a => a.project_id && activeProjectIds.has(a.project_id))
+    .reduce((sum, a) => sum + (a.horas_semanais || 0), 0);
 
   // Activities
   const getClientName = (id) => clients.find(c => c.id === id)?.razao_social || '-';
@@ -36,10 +44,42 @@ export default function Dashboard() {
 
         {/* EXECUTIVO */}
         <TabsContent value="executivo" className="space-y-6 mt-4">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <StatCard title="Projetos Ativos" value={activeProjects.length} icon={FolderKanban} subtitle={`${projects.length} total na carteira`} />
             <StatCard title="Projetos Pausados" value={pausedProjects.length} icon={PauseCircle} subtitle="Aguardando retomada" />
             <StatCard title="Projetos Cancelados" value={cancelledProjects.length} icon={XCircle} subtitle="Encerrados" />
+            <StatCard title="Horas Previstas (Ativos)" value={`${totalHorasPrevistas}h`} icon={Clock} subtitle={`${totalHorasRealizadas}h em alocações`} />
+          </div>
+
+          {/* Horas por Projeto */}
+          <div className="bg-card rounded-xl border p-5">
+            <h3 className="font-semibold text-sm mb-4">Horas por Projeto (Ativos)</h3>
+            {activeProjects.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">Nenhum projeto ativo</p>
+            ) : (
+              <div className="space-y-3">
+                {activeProjects.map(p => {
+                  const horasPrev = p.horas_previstas || 0;
+                  const horasReal = allocations
+                    .filter(a => a.project_id === p.id)
+                    .reduce((sum, a) => sum + (a.horas_semanais || 0), 0);
+                  const pct = horasPrev > 0 ? Math.min(Math.round(horasReal / horasPrev * 100), 100) : 0;
+                  const clientName = clients.find(c => c.id === p.client_id)?.razao_social || '-';
+                  return (
+                    <Link key={p.id} to={`/projects/${p.id}`} className="block group">
+                      <div className="flex items-center justify-between mb-1">
+                        <div className="min-w-0">
+                          <span className="text-sm font-medium group-hover:text-primary transition-colors">{p.name}</span>
+                          <span className="text-xs text-muted-foreground ml-2">{clientName}</span>
+                        </div>
+                        <span className="text-xs text-muted-foreground ml-4 shrink-0">{horasReal}h / {horasPrev}h</span>
+                      </div>
+                      <Progress value={pct} className="h-1.5" />
+                    </Link>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
