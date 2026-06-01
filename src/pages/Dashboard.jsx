@@ -1,9 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Link } from 'react-router-dom';
 import {
-  FolderKanban, ArrowRight, CheckCircle2, PauseCircle, XCircle, Clock
+  FolderKanban, ArrowRight, CheckCircle2, PauseCircle, XCircle, Clock, Filter, X
 } from 'lucide-react';
 import StatCard from '@/components/shared/StatCard';
 import HealthBadge from '@/components/shared/HealthBadge';
@@ -11,15 +11,22 @@ import PageHeader from '@/components/shared/PageHeader';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
 import { FASES_PROJETO, getFaseLabel } from '@/lib/constants';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Button } from '@/components/ui/button';
 
 export default function Dashboard() {
+  const [selectedProjectId, setSelectedProjectId] = useState('all');
+
   const { data: projects = [] } = useQuery({ queryKey: ['projects'], queryFn: () => base44.entities.Project.list('-created_date', 100), staleTime: 0 });
   const { data: clients = [] } = useQuery({ queryKey: ['clients'], queryFn: () => base44.entities.Client.list('-created_date', 100), staleTime: 0 });
   const { data: allocations = [] } = useQuery({ queryKey: ['allocations'], queryFn: () => base44.entities.Allocation.list('-created_date', 500), staleTime: 0 });
   const { data: moduleItems = [] } = useQuery({ queryKey: ['moduleItems'], queryFn: () => base44.entities.ModuleItem.list('-created_date', 1000), staleTime: 0 });
 
   // Projects by status
-  const activeProjects = projects.filter(p => p.status === 'em_andamento' || p.status === 'nao_iniciado');
+  const allActiveProjects = projects.filter(p => p.status === 'em_andamento' || p.status === 'nao_iniciado');
+  const activeProjects = selectedProjectId === 'all'
+    ? allActiveProjects
+    : allActiveProjects.filter(p => p.id === selectedProjectId);
   const pausedProjects = projects.filter(p => p.status === 'pausado');
   const cancelledProjects = projects.filter(p => p.status === 'cancelado');
 
@@ -39,7 +46,28 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6 lg:pl-0 pl-12">
-      <PageHeader title="Dashboard PMO" description="Visão consolidada da carteira de projetos" />
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <PageHeader title="Dashboard PMO" description="Visão consolidada da carteira de projetos" />
+        <div className="flex items-center gap-2">
+          <Filter className="w-4 h-4 text-muted-foreground shrink-0" />
+          <Select value={selectedProjectId} onValueChange={setSelectedProjectId}>
+            <SelectTrigger className="w-56">
+              <SelectValue placeholder="Todos os projetos" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os projetos</SelectItem>
+              {allActiveProjects.map(p => (
+                <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {selectedProjectId !== 'all' && (
+            <Button variant="ghost" size="icon" onClick={() => setSelectedProjectId('all')}>
+              <X className="w-4 h-4" />
+            </Button>
+          )}
+        </div>
+      </div>
 
       <Tabs defaultValue="executivo">
         <TabsList className="bg-muted/50 p-1 h-auto">
