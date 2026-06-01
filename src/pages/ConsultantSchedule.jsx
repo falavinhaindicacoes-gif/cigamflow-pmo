@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import PageHeader from '@/components/shared/PageHeader';
 import AllocationCellDialog from '@/components/schedule/AllocationCellDialog';
+import AllocationEditDialog from '@/components/schedule/AllocationEditDialog';
 import ScheduleWeekView from '@/components/schedule/ScheduleWeekView';
 import ScheduleMonthView from '@/components/schedule/ScheduleMonthView';
 import ScheduleMultiWeekView from '@/components/schedule/ScheduleMultiWeekView';
@@ -70,6 +71,7 @@ export default function ConsultantSchedule() {
   const [base, setBase] = useState(new Date());
   const [tab, setTab] = useState('agenda');
   const [dialogCell, setDialogCell] = useState(null);
+  const [editAllocation, setEditAllocation] = useState(null);
 
   const { data: consultants = [] } = useQuery({ queryKey: ['consultants'], queryFn: () => base44.entities.Consultant.list() });
   const { data: allocations = [] } = useQuery({ queryKey: ['allocations-schedule'], queryFn: () => base44.entities.Allocation.list() });
@@ -173,6 +175,7 @@ export default function ConsultantSchedule() {
               onCycleStatus={cycleStatus}
               onDelete={(id) => deleteMutation.mutate(id)}
               getProjectName={getProjectName}
+              onAllocationClick={(allocation) => setEditAllocation({ allocation, consultant: consultants.find(c => c.id === allocation.consultant_id) })}
             />
           )}
           {view === 'mes' && (
@@ -212,6 +215,16 @@ export default function ConsultantSchedule() {
           <ScheduleFinanceDash allocations={allocations} clients={clients} projects={projects} />
         </TabsContent>
       </Tabs>
+
+      {editAllocation && (
+        <AllocationEditDialog
+          allocation={editAllocation.allocation}
+          consultant={editAllocation.consultant}
+          projects={projects}
+          clients={clients}
+          onClose={() => setEditAllocation(null)}
+        />
+      )}
 
       {dialogCell && (
         <AllocationCellDialog

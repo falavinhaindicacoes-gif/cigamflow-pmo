@@ -21,7 +21,7 @@ function getWeekDays(baseDate) {
   return Array.from({ length: 7 }, (_, i) => addDays(start, i));
 }
 
-export default function ScheduleWeekView({ weekBase, allocations, consultants, onCellClick, onDragEnd, onCycleStatus, onDelete, getProjectName }) {
+export default function ScheduleWeekView({ weekBase, allocations, consultants, onCellClick, onDragEnd, onCycleStatus, onDelete, getProjectName, onAllocationClick }) {
   const days = getWeekDays(weekBase);
   const activeConsultants = consultants.filter((c) => c.status === 'ativo');
 
@@ -83,8 +83,8 @@ export default function ScheduleWeekView({ weekBase, allocations, consultants, o
                                         ref={drag.innerRef}
                                         {...drag.draggableProps}
                                         {...drag.dragHandleProps}
-                                        className={`absolute inset-0.5 rounded text-[10px] flex flex-col justify-between p-1 cursor-grab active:cursor-grabbing ${cfg.bg} ${cfg.text} ${dragSnapshot.isDragging ? 'shadow-lg opacity-90' : ''}`}
-                                        onClick={(e) => { e.stopPropagation(); onCycleStatus(allocation); }}
+                                        className={`absolute inset-0.5 rounded text-[10px] flex flex-col justify-between p-1 cursor-pointer ${cfg.bg} ${cfg.text} ${dragSnapshot.isDragging ? 'shadow-lg opacity-90 cursor-grabbing' : ''}`}
+                                                                                onClick={(e) => { e.stopPropagation(); if (onAllocationClick) onAllocationClick(allocation); else onCycleStatus(allocation); }}
                                       >
                                         <span className="font-semibold leading-tight line-clamp-2">
                                           {getProjectName(allocation.project_id) || allocation.observacoes || '—'}
