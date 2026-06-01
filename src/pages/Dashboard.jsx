@@ -40,6 +40,7 @@ export default function Dashboard() {
 
   const totalHorasPrevistas = activeProjects.reduce((sum, p) => sum + getHorasPrevistas(p.id), 0);
   const totalHorasRealizadas = activeProjects.reduce((sum, p) => sum + getHorasRealizadas(p.id), 0);
+  const progressPercentage = totalHorasPrevistas > 0 ? Math.round(totalHorasRealizadas / totalHorasPrevistas * 100) : 0;
 
   // Activities
   const getClientName = (id) => clients.find(c => c.id === id)?.razao_social || '-';
@@ -80,7 +81,7 @@ export default function Dashboard() {
             <StatCard title="Projetos em Carteira" value={activeProjects.length} icon={FolderKanban} subtitle={`${projects.length} total na carteira`} />
             <StatCard title="Projetos Pausados" value={pausedProjects.length} icon={PauseCircle} subtitle="Aguardando retomada" />
             <StatCard title="Projetos Cancelados" value={cancelledProjects.length} icon={XCircle} subtitle="Encerrados" />
-            <StatCard title="Horas Previstas (Ativos)" value={`${totalHorasPrevistas}h`} icon={Clock} subtitle={`${totalHorasRealizadas}h realizadas`} />
+            <StatCard title="Horas Previstas (Ativos)" value={`${totalHorasPrevistas}h`} icon={Clock} subtitle={`${totalHorasRealizadas}h realizadas (${progressPercentage}%)`} />
           </div>
 
           {/* Horas por Projeto */}
