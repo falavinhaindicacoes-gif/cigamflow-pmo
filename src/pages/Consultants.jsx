@@ -1,24 +1,39 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { Plus, Search, UserCog, Pencil, X, FolderKanban, Clock } from 'lucide-react';
+import { Plus, Search, UserCog, Pencil, FolderKanban, Mail, Phone, CheckSquare, Square } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import PageHeader from '@/components/shared/PageHeader';
-import CapacityGauge from '@/components/shared/CapacityGauge';
 import StatCard from '@/components/shared/StatCard';
 import { ESPECIALIDADES } from '@/lib/constants';
-import { AlertTriangle, TrendingUp } from 'lucide-react';
+import { Link } from 'react-router-dom';
+
+const MODULOS_DISPONIVEIS = [
+  { value: 'financeiro', label: 'Financeiro' },
+  { value: 'contabil', label: 'Contábil' },
+  { value: 'fiscal', label: 'Fiscal' },
+  { value: 'estoque', label: 'Estoque' },
+  { value: 'compras', label: 'Compras' },
+  { value: 'vendas', label: 'Vendas' },
+  { value: 'producao', label: 'Produção' },
+  { value: 'rh', label: 'RH' },
+  { value: 'ti', label: 'TI' },
+  { value: 'integracao', label: 'Integração' },
+  { value: 'customizacao', label: 'Customização' },
+  { value: 'folha_pagamento', label: 'Folha de Pagamento' },
+  { value: 'ativo_fixo', label: 'Ativo Fixo' },
+  { value: 'custos', label: 'Custos' },
+  { value: 'planejamento', label: 'Planejamento' },
+];
 
 export default function Consultants() {
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
-  const [filterEsp, setFilterEsp] = useState('all');
   const [showCreate, setShowCreate] = useState(false);
   const [editing, setEditing] = useState(null);
   const [selected, setSelected] = useState(null);
@@ -28,13 +43,15 @@ export default function Consultants() {
     queryKey: ['consultants'],
     queryFn: () => base44.entities.Consultant.list('-created_date', 100),
   });
-  const { data: allocations = [] } = useQuery({
-    queryKey: ['allocations'],
-    queryFn: () => base44.entities.Allocation.list('-created_date', 500),
-  });
+
   const { data: projects = [] } = useQuery({
     queryKey: ['projects'],
     queryFn: () => base44.entities.Project.list('-created_date', 100),
+  });
+
+  const { data: allocations = [] } = useQuery({
+    queryKey: ['allocations'],
+    queryFn: () => base44.entities.Allocation.list('-created_date', 500),
   });
 
   const createMutation = useMutation({
@@ -47,37 +64,23 @@ export default function Consultants() {
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['consultants'] }); setEditing(null); },
   });
 
-  const activeAllocations = allocations.filter(a => a.status === 'ativa');
+  const espLabel = (val) => ESPECIALIDADES.find(e => e.value === val)?.label || val;
 
-  const getOccupancy = (cId) => {
-    const c = consultants.find(x => x.id === cId);
-    if (!c || !c.capacidade_semanal) return 0;
-    const h = activeAllocations.filter(a => a.consultant_id === cId).reduce((s, a) => s + (a.horas_semanais || 0), 0);
-    return (h / c.capacidade_semanal) * 100;
-  };
-
-  const getProjectNames = (cId) => {
-    const allocs = activeAllocations.filter(a => a.consultant_id === cId);
-    return allocs.map(a => ({ name: projects.find(p => p.id === a.project_id)?.name || '-', hours: a.horas_semanais, role: a.papel_no_projeto })).filter(x => x.name !== '-');
+  const getConsultantProjects = (cId) => {
+    const projectIds = [...new Set(allocations.filter(a => a.consultant_id === cId && a.project_id).map(a => a.project_id))];
+    return projectIds.map(pid => projects.find(p => p.id === pid)).filter(Boolean);
   };
 
   const filtered = consultants.filter(c => {
-    const matchSearch = !search || c.name?.toLowerCase().includes(search.toLowerCase()) || c.funcao?.toLowerCase().includes(search.toLowerCase());
+    const matchSearch = !search || c.name?.toLowerCase().includes(search.toLowerCase()) ||
+      c.funcao?.toLowerCase().includes(search.toLowerCase()) || c.email?.toLowerCase().includes(search.toLowerCase());
     const matchStatus = filterStatus === 'all' || c.status === filterStatus;
-    const matchEsp = filterEsp === 'all' || c.especialidade_principal === filterEsp;
-    return matchSearch && matchStatus && matchEsp;
+    return matchSearch && matchStatus;
   });
 
-  const active = consultants.filter(c => c.status === 'ativo');
-  const overloaded = active.filter(c => getOccupancy(c.id) > 100);
-  const attention = active.filter(c => getOccupancy(c.id) > 80 && getOccupancy(c.id) <= 100);
-
-  const espLabel = (val) => ESPECIALIDADES.find(e => e.value === val)?.label || val;
-
+  const ativos = consultants.filter(c => c.status === 'ativo').length;
   const selectedConsultant = selected ? consultants.find(c => c.id === selected) : null;
-  const selectedProjects = selected ? getProjectNames(selected) : [];
-  const selectedOcc = selected ? getOccupancy(selected) : 0;
-  const selectedAllocs = selected ? allocations.filter(a => a.consultant_id === selected) : [];
+  const selectedProjects = selected ? getConsultantProjects(selected) : [];
 
   return (
     <div className="space-y-6 lg:pl-0 pl-12">
@@ -88,26 +91,19 @@ export default function Consultants() {
       </PageHeader>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard title="Total Ativos" value={active.length} icon={UserCog} />
-        <StatCard title="Disponíveis" value={active.filter(c => getOccupancy(c.id) <= 80).length} icon={TrendingUp} subtitle="≤ 80%" />
-        <StatCard title="Atenção" value={attention.length} icon={Clock} subtitle="80-100%" />
-        <StatCard title="Sobrecarregados" value={overloaded.length} icon={AlertTriangle} subtitle="> 100%" />
+        <StatCard title="Total" value={consultants.length} icon={UserCog} />
+        <StatCard title="Ativos" value={ativos} icon={UserCog} />
+        <StatCard title="Férias / Afastados" value={consultants.filter(c => c.status === 'ferias' || c.status === 'afastado').length} icon={UserCog} />
+        <StatCard title="Inativos" value={consultants.filter(c => c.status === 'inativo').length} icon={UserCog} />
       </div>
 
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input placeholder="Buscar consultor ou função..." value={search} onChange={e => setSearch(e.target.value)} className="pl-10" />
+          <Input placeholder="Buscar por nome, função ou e-mail..." value={search} onChange={e => setSearch(e.target.value)} className="pl-10" />
         </div>
-        <Select value={filterEsp} onValueChange={setFilterEsp}>
-          <SelectTrigger className="w-44"><SelectValue placeholder="Especialidade" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todas Especialidades</SelectItem>
-            {ESPECIALIDADES.map(e => <SelectItem key={e.value} value={e.value}>{e.label}</SelectItem>)}
-          </SelectContent>
-        </Select>
         <Select value={filterStatus} onValueChange={setFilterStatus}>
-          <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todos</SelectItem>
             <SelectItem value="ativo">Ativos</SelectItem>
@@ -118,6 +114,7 @@ export default function Consultants() {
         </Select>
       </div>
 
+      {/* Lista de consultores */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {isLoading ? (
           <div className="col-span-full text-center py-12 text-muted-foreground">Carregando...</div>
@@ -125,49 +122,62 @@ export default function Consultants() {
           <div className="col-span-full text-center py-12 text-muted-foreground">Nenhum consultor encontrado</div>
         ) : (
           filtered.map(consultant => {
-            const occupancy = getOccupancy(consultant.id);
-            const projectNames = getProjectNames(consultant.id);
-            const totalH = activeAllocations.filter(a => a.consultant_id === consultant.id).reduce((s, a) => s + (a.horas_semanais || 0), 0);
+            const modulos = consultant.modulos_habilitados || [];
             return (
               <div
                 key={consultant.id}
-                className={`bg-card border rounded-xl p-5 hover:shadow-md transition-shadow cursor-pointer ${selected === consultant.id ? 'ring-2 ring-primary' : ''} ${occupancy > 100 ? 'border-red-200' : occupancy > 80 ? 'border-yellow-200' : ''}`}
+                className={`bg-card border rounded-xl p-5 hover:shadow-md transition-shadow cursor-pointer ${selected === consultant.id ? 'ring-2 ring-primary' : ''}`}
                 onClick={() => setSelected(selected === consultant.id ? null : consultant.id)}
               >
-                <div className="flex items-start gap-3 mb-3">
-                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
                     <UserCog className="w-5 h-5 text-primary" />
                   </div>
                   <div className="min-w-0 flex-1">
                     <h3 className="font-semibold text-sm truncate">{consultant.name}</h3>
-                    <p className="text-xs text-muted-foreground">{consultant.funcao || espLabel(consultant.especialidade_principal)}</p>
+                    {consultant.funcao && <p className="text-xs text-muted-foreground">{consultant.funcao}</p>}
+                    {consultant.especialidade_principal && (
+                      <p className="text-xs text-muted-foreground">{espLabel(consultant.especialidade_principal)}</p>
+                    )}
                   </div>
-                  <div className="flex items-center gap-1">
-                    <button onClick={e => { e.stopPropagation(); setEditing(consultant); }} className="p-1.5 hover:bg-muted rounded-lg transition-colors">
+                  <div className="flex items-center gap-1 flex-shrink-0">
+                    <button onClick={e => { e.stopPropagation(); setEditing(consultant); }} className="p-1.5 hover:bg-muted rounded-lg">
                       <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
                     </button>
                     <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
                       consultant.status === 'ativo' ? 'bg-green-100 text-green-700' :
                       consultant.status === 'ferias' ? 'bg-blue-100 text-blue-700' :
+                      consultant.status === 'afastado' ? 'bg-yellow-100 text-yellow-700' :
                       'bg-gray-100 text-gray-700'
                     }`}>
                       {consultant.status === 'ativo' ? 'Ativo' : consultant.status === 'ferias' ? 'Férias' : consultant.status === 'afastado' ? 'Afastado' : 'Inativo'}
                     </span>
                   </div>
                 </div>
-                <div className="mb-3">
-                  <CapacityGauge percentage={occupancy} />
+
+                <div className="mt-3 space-y-1">
+                  {consultant.email && (
+                    <p className="text-xs text-muted-foreground flex items-center gap-1">
+                      <Mail className="w-3 h-3" /> {consultant.email}
+                    </p>
+                  )}
+                  {consultant.telefone && (
+                    <p className="text-xs text-muted-foreground flex items-center gap-1">
+                      <Phone className="w-3 h-3" /> {consultant.telefone}
+                    </p>
+                  )}
                 </div>
-                <div className="flex items-center justify-between text-xs text-muted-foreground">
-                  <span>{totalH}/{consultant.capacidade_semanal || 40}h/sem</span>
-                  <span>{projectNames.length} projeto{projectNames.length !== 1 ? 's' : ''}</span>
-                </div>
-                {projectNames.length > 0 && (
-                  <div className="mt-2 flex flex-wrap gap-1">
-                    {projectNames.slice(0, 3).map((p, i) => (
-                      <span key={i} className="text-[10px] bg-muted px-2 py-0.5 rounded-full truncate max-w-[110px]">{p.name}</span>
-                    ))}
-                    {projectNames.length > 3 && <span className="text-[10px] text-muted-foreground">+{projectNames.length - 3}</span>}
+
+                {modulos.length > 0 && (
+                  <div className="mt-3 pt-3 border-t">
+                    <p className="text-[10px] text-muted-foreground mb-1">{modulos.length} módulo{modulos.length > 1 ? 's' : ''} habilitado{modulos.length > 1 ? 's' : ''}</p>
+                    <div className="flex flex-wrap gap-1">
+                      {modulos.slice(0, 3).map(m => {
+                        const mod = MODULOS_DISPONIVEIS.find(x => x.value === m);
+                        return <span key={m} className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-full">{mod?.label || m}</span>;
+                      })}
+                      {modulos.length > 3 && <span className="text-[10px] text-muted-foreground">+{modulos.length - 3}</span>}
+                    </div>
                   </div>
                 )}
               </div>
@@ -178,115 +188,91 @@ export default function Consultants() {
 
       {/* Detalhe do consultor selecionado */}
       {selectedConsultant && (
-        <div className="bg-card border rounded-xl p-5 space-y-4">
-          <div className="flex items-center justify-between">
+        <div className="bg-card border rounded-xl p-5">
+          <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
                 <UserCog className="w-5 h-5 text-primary" />
               </div>
               <div>
                 <h3 className="font-semibold">{selectedConsultant.name}</h3>
-                <p className="text-xs text-muted-foreground">{selectedConsultant.funcao} · {espLabel(selectedConsultant.especialidade_principal)}</p>
+                <p className="text-xs text-muted-foreground">
+                  {selectedConsultant.funcao}{selectedConsultant.funcao && selectedConsultant.especialidade_principal ? ' · ' : ''}{espLabel(selectedConsultant.especialidade_principal)}
+                </p>
               </div>
             </div>
-            <button onClick={() => setSelected(null)} className="p-2 hover:bg-muted rounded-lg"><X className="w-4 h-4" /></button>
+            <Button size="sm" variant="outline" onClick={() => setEditing(selectedConsultant)} className="gap-2">
+              <Pencil className="w-3.5 h-3.5" /> Editar
+            </Button>
           </div>
 
-          <Tabs defaultValue="projetos">
-            <TabsList className="bg-muted/50 p-1 h-auto">
-              <TabsTrigger value="projetos" className="text-xs">Projetos Vinculados</TabsTrigger>
-              <TabsTrigger value="historico" className="text-xs">Histórico de Alocações</TabsTrigger>
-              <TabsTrigger value="dados" className="text-xs">Dados</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="projetos" className="mt-4">
-              {selectedProjects.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-6">Sem projetos ativos</p>
-              ) : (
-                <div className="space-y-2">
-                  {selectedProjects.map((p, i) => (
-                    <div key={i} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
-                      <div className="flex items-center gap-2">
-                        <FolderKanban className="w-4 h-4 text-primary" />
-                        <span className="text-sm font-medium">{p.name}</span>
-                        {p.role && <span className="text-xs text-muted-foreground">· {p.role}</span>}
-                      </div>
-                      <span className="text-sm font-medium">{p.hours}h/sem</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-              <div className="mt-3 p-3 bg-muted/30 rounded-lg">
-                <CapacityGauge percentage={selectedOcc} />
-                <div className="flex justify-between text-xs text-muted-foreground mt-2">
-                  <span>Capacidade: {selectedConsultant.capacidade_semanal || 40}h/sem</span>
-                  <span>Saldo: {Math.max(0, (selectedConsultant.capacidade_semanal || 40) - selectedProjects.reduce((s, p) => s + (p.hours || 0), 0))}h/sem</span>
-                </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4">
+            {[
+              { label: 'E-mail', value: selectedConsultant.email },
+              { label: 'Telefone', value: selectedConsultant.telefone },
+              { label: 'Gestor', value: selectedConsultant.gestor },
+              { label: 'Especialidade', value: espLabel(selectedConsultant.especialidade_principal) },
+              { label: 'Situação', value: selectedConsultant.status === 'ativo' ? 'Ativo' : selectedConsultant.status === 'ferias' ? 'Férias' : selectedConsultant.status === 'afastado' ? 'Afastado' : 'Inativo' },
+            ].filter(r => r.value).map(r => (
+              <div key={r.label} className="p-3 bg-muted/30 rounded-lg">
+                <p className="text-xs text-muted-foreground">{r.label}</p>
+                <p className="text-sm font-medium mt-0.5">{r.value}</p>
               </div>
-            </TabsContent>
+            ))}
+          </div>
 
-            <TabsContent value="historico" className="mt-4">
-              <div className="space-y-2">
-                {selectedAllocs.length === 0 ? (
-                  <p className="text-sm text-muted-foreground text-center py-6">Nenhuma alocação encontrada</p>
-                ) : (
-                  selectedAllocs.map(a => {
-                    const proj = projects.find(p => p.id === a.project_id);
-                    return (
-                      <div key={a.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
-                        <div>
-                          <p className="text-sm font-medium">{proj?.name || '-'}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {a.data_inicio ? new Date(a.data_inicio).toLocaleDateString('pt-BR') : '-'} →{' '}
-                            {a.data_fim ? new Date(a.data_fim).toLocaleDateString('pt-BR') : 'Em aberto'}
-                          </p>
-                        </div>
-                        <div className="text-right">
-                          <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
-                            a.status === 'ativa' ? 'bg-green-100 text-green-700' :
-                            a.status === 'encerrada' ? 'bg-gray-100 text-gray-700' :
-                            'bg-yellow-100 text-yellow-700'
-                          }`}>{a.status}</span>
-                          <p className="text-xs text-muted-foreground mt-1">{a.horas_semanais}h/sem</p>
-                        </div>
-                      </div>
-                    );
-                  })
-                )}
+          {/* Módulos habilitados */}
+          {(selectedConsultant.modulos_habilitados || []).length > 0 && (
+            <div className="mb-4">
+              <h4 className="font-semibold text-sm mb-2">Módulos Habilitados</h4>
+              <div className="flex flex-wrap gap-2">
+                {(selectedConsultant.modulos_habilitados || []).map(m => {
+                  const mod = MODULOS_DISPONIVEIS.find(x => x.value === m);
+                  return (
+                    <span key={m} className="text-xs bg-primary/10 text-primary px-3 py-1 rounded-full font-medium">
+                      {mod?.label || m}
+                    </span>
+                  );
+                })}
               </div>
-            </TabsContent>
+            </div>
+          )}
 
-            <TabsContent value="dados" className="mt-4">
-              <div className="grid grid-cols-2 gap-3 text-sm">
-                {[
-                  { label: 'E-mail', value: selectedConsultant.email },
-                  { label: 'Telefone', value: selectedConsultant.telefone },
-                  { label: 'Especialidade', value: espLabel(selectedConsultant.especialidade_principal) },
-                  { label: 'Gestor', value: selectedConsultant.gestor },
-                  { label: 'Cap. Semanal', value: `${selectedConsultant.capacidade_semanal || 40}h` },
-                  { label: 'Cap. Mensal', value: `${selectedConsultant.capacidade_mensal || 160}h` },
-                  { label: 'Custo/Hora', value: selectedConsultant.custo_hora ? `R$ ${selectedConsultant.custo_hora}` : '-' },
-                ].map(row => (
-                  <div key={row.label} className="p-3 bg-muted/30 rounded-lg">
-                    <p className="text-xs text-muted-foreground">{row.label}</p>
-                    <p className="font-medium mt-0.5">{row.value || '-'}</p>
+          {selectedConsultant.observacoes && (
+            <div className="mb-4 p-3 bg-muted/30 rounded-lg">
+              <p className="text-xs text-muted-foreground">Observações</p>
+              <p className="text-sm mt-0.5">{selectedConsultant.observacoes}</p>
+            </div>
+          )}
+
+          {/* Projetos vinculados */}
+          <h4 className="font-semibold text-sm mb-2">Projetos Vinculados</h4>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {selectedProjects.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Nenhum projeto vinculado</p>
+            ) : (
+              selectedProjects.map(p => (
+                <Link key={p.id} to={`/projects/${p.id}`} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg hover:bg-muted/50 transition-colors">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <FolderKanban className="w-4 h-4 text-primary flex-shrink-0" />
+                    <span className="text-sm font-medium truncate">{p.name}</span>
                   </div>
-                ))}
-              </div>
-              {selectedConsultant.observacoes && (
-                <div className="mt-3 p-3 bg-muted/30 rounded-lg">
-                  <p className="text-xs text-muted-foreground">Observações</p>
-                  <p className="text-sm mt-0.5">{selectedConsultant.observacoes}</p>
-                </div>
-              )}
-            </TabsContent>
-          </Tabs>
+                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium flex-shrink-0 ${
+                    p.status === 'em_andamento' ? 'bg-green-100 text-green-700' :
+                    p.status === 'concluido' ? 'bg-gray-100 text-gray-700' : 'bg-blue-100 text-blue-700'
+                  }`}>
+                    {p.status === 'em_andamento' ? 'Em andamento' : p.status === 'concluido' ? 'Concluído' : p.status}
+                  </span>
+                </Link>
+              ))
+            )}
+          </div>
         </div>
       )}
 
       {/* Create dialog */}
       <Dialog open={showCreate} onOpenChange={setShowCreate}>
-        <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Novo Consultor</DialogTitle></DialogHeader>
           <ConsultantForm onSubmit={d => createMutation.mutate(d)} isLoading={createMutation.isPending} />
         </DialogContent>
@@ -294,7 +280,7 @@ export default function Consultants() {
 
       {/* Edit dialog */}
       <Dialog open={!!editing} onOpenChange={v => { if (!v) setEditing(null); }}>
-        <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Editar Consultor</DialogTitle></DialogHeader>
           {editing && (
             <ConsultantForm
@@ -317,14 +303,22 @@ function ConsultantForm({ onSubmit, isLoading, initial = {}, submitLabel = 'Cada
     telefone: initial.telefone || '',
     funcao: initial.funcao || '',
     especialidade_principal: initial.especialidade_principal || 'geral',
-    capacidade_semanal: initial.capacidade_semanal ?? 40,
-    capacidade_mensal: initial.capacidade_mensal ?? 160,
-    custo_hora: initial.custo_hora ?? 0,
+    modulos_habilitados: initial.modulos_habilitados || [],
     status: initial.status || 'ativo',
     gestor: initial.gestor || '',
     observacoes: initial.observacoes || '',
   });
+
   const u = (f, v) => setForm(p => ({ ...p, [f]: v }));
+
+  const toggleModulo = (value) => {
+    setForm(p => ({
+      ...p,
+      modulos_habilitados: p.modulos_habilitados.includes(value)
+        ? p.modulos_habilitados.filter(m => m !== value)
+        : [...p.modulos_habilitados, value],
+    }));
+  };
 
   return (
     <form onSubmit={e => { e.preventDefault(); onSubmit(form); }} className="space-y-3">
@@ -334,7 +328,7 @@ function ConsultantForm({ onSubmit, isLoading, initial = {}, submitLabel = 'Cada
         <div><Label>Telefone</Label><Input value={form.telefone} onChange={e => u('telefone', e.target.value)} /></div>
       </div>
       <div className="grid grid-cols-2 gap-3">
-        <div><Label>Função/Cargo</Label><Input value={form.funcao} onChange={e => u('funcao', e.target.value)} /></div>
+        <div><Label>Função / Cargo</Label><Input value={form.funcao} onChange={e => u('funcao', e.target.value)} /></div>
         <div><Label>Gestor</Label><Input value={form.gestor} onChange={e => u('gestor', e.target.value)} /></div>
       </div>
       <div className="grid grid-cols-2 gap-3">
@@ -358,11 +352,30 @@ function ConsultantForm({ onSubmit, isLoading, initial = {}, submitLabel = 'Cada
           </Select>
         </div>
       </div>
-      <div className="grid grid-cols-3 gap-3">
-        <div><Label>Cap. Semanal (h)</Label><Input type="number" value={form.capacidade_semanal} onChange={e => u('capacidade_semanal', parseInt(e.target.value) || 0)} /></div>
-        <div><Label>Cap. Mensal (h)</Label><Input type="number" value={form.capacidade_mensal} onChange={e => u('capacidade_mensal', parseInt(e.target.value) || 0)} /></div>
-        <div><Label>Custo/Hora (R$)</Label><Input type="number" value={form.custo_hora} onChange={e => u('custo_hora', parseFloat(e.target.value) || 0)} /></div>
+
+      {/* Módulos habilitados */}
+      <div>
+        <Label>Módulos Habilitados</Label>
+        <div className="mt-2 grid grid-cols-2 gap-2">
+          {MODULOS_DISPONIVEIS.map(mod => {
+            const checked = form.modulos_habilitados.includes(mod.value);
+            return (
+              <button
+                key={mod.value}
+                type="button"
+                onClick={() => toggleModulo(mod.value)}
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-sm transition-colors text-left ${
+                  checked ? 'bg-primary/10 border-primary/30 text-primary font-medium' : 'bg-background border-border text-muted-foreground hover:bg-muted/50'
+                }`}
+              >
+                {checked ? <CheckSquare className="w-4 h-4 flex-shrink-0" /> : <Square className="w-4 h-4 flex-shrink-0" />}
+                {mod.label}
+              </button>
+            );
+          })}
+        </div>
       </div>
+
       <div><Label>Observações</Label><Textarea value={form.observacoes} onChange={e => u('observacoes', e.target.value)} rows={2} /></div>
       <Button type="submit" className="w-full" disabled={isLoading}>{isLoading ? 'Salvando...' : submitLabel}</Button>
     </form>

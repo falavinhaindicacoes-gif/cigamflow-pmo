@@ -34,23 +34,12 @@
         "geral"
       ]
     },
-    "especialidades_secundarias": {
+    "modulos_habilitados": {
       "type": "array",
       "items": {
         "type": "string"
-      }
-    },
-    "capacidade_semanal": {
-      "type": "number",
-      "default": 40
-    },
-    "capacidade_mensal": {
-      "type": "number",
-      "default": 160
-    },
-    "custo_hora": {
-      "type": "number",
-      "default": 0
+      },
+      "description": "Lista de m\u00f3dulos/especialidades que o consultor est\u00e1 habilitado a atuar"
     },
     "status": {
       "type": "string",
