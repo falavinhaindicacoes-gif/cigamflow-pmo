@@ -3,24 +3,22 @@ import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Link } from 'react-router-dom';
 import {
-  FolderKanban, Users, UserCog, AlertTriangle, ListChecks,
+  FolderKanban, AlertTriangle, ListChecks,
   ArrowRight, TrendingUp, Clock, CheckCircle2, PauseCircle,
-  XCircle, BarChart2, Zap
+  XCircle, Zap
 } from 'lucide-react';
 import StatCard from '@/components/shared/StatCard';
 import HealthBadge from '@/components/shared/HealthBadge';
-import CapacityGauge from '@/components/shared/CapacityGauge';
 import PageHeader from '@/components/shared/PageHeader';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { FASES_PROJETO, getFaseLabel, getActivityStatusInfo } from '@/lib/constants';
-import { differenceInDays, startOfWeek, endOfWeek } from 'date-fns';
+import { differenceInDays } from 'date-fns';
 
 export default function Dashboard() {
   const { data: projects = [] } = useQuery({ queryKey: ['projects'], queryFn: () => base44.entities.Project.list('-created_date', 100) });
-  const { data: consultants = [] } = useQuery({ queryKey: ['consultants'], queryFn: () => base44.entities.Consultant.list('-created_date', 100) });
-  const { data: allocations = [] } = useQuery({ queryKey: ['allocations'], queryFn: () => base44.entities.Allocation.list('-created_date', 200) });
   const { data: activities = [] } = useQuery({ queryKey: ['activities'], queryFn: () => base44.entities.Activity.list('-created_date', 500) });
   const { data: clients = [] } = useQuery({ queryKey: ['clients'], queryFn: () => base44.entities.Client.list('-created_date', 100) });
+
 
   // Projects by status
   const activeProjects = projects.filter(p => p.status === 'em_andamento');
@@ -32,28 +30,6 @@ export default function Dashboard() {
   const openActivities = activities.filter(a => a.status !== 'concluido' && a.status !== 'cancelado');
   const overdueActivities = openActivities.filter(a => a.prazo && new Date(a.prazo) < new Date());
   const criticalActivities = openActivities.filter(a => a.criticidade === 'critica');
-
-  // Capacidade baseada na agenda da semana atual
-  const TURNOS_SEMANA_CHEIA = 15;
-  const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 });
-  const weekEnd = endOfWeek(new Date(), { weekStartsOn: 1 });
-
-  const getWeekAllocations = (cId) =>
-    allocations.filter(a => {
-      if (a.consultant_id !== cId || !a.data) return false;
-      const d = new Date(a.data);
-      return d >= weekStart && d <= weekEnd;
-    });
-
-  const getOccupancy = (cId) => {
-    const turnos = getWeekAllocations(cId).length;
-    return (turnos / TURNOS_SEMANA_CHEIA) * 100;
-  };
-
-  const activeConsultants = consultants.filter(c => c.status === 'ativo');
-  const overloaded = activeConsultants.filter(c => getOccupancy(c.id) > 100);
-  const atAttention = activeConsultants.filter(c => getOccupancy(c.id) > 80 && getOccupancy(c.id) <= 100);
-  const available = activeConsultants.filter(c => getOccupancy(c.id) <= 80);
 
   const projectsByHealth = {
     verde: projects.filter(p => p.saude === 'verde').length,
@@ -85,7 +61,7 @@ export default function Dashboard() {
           <TabsTrigger value="executivo" className="text-xs">Executivo</TabsTrigger>
           <TabsTrigger value="gerencial" className="text-xs">Gerencial</TabsTrigger>
           <TabsTrigger value="operacional" className="text-xs">Operacional</TabsTrigger>
-          <TabsTrigger value="capacidade" className="text-xs">Capacidade</TabsTrigger>
+
         </TabsList>
 
         {/* EXECUTIVO */}
@@ -385,66 +361,7 @@ export default function Dashboard() {
           </div>
         </TabsContent>
 
-        {/* CAPACIDADE */}
-        <TabsContent value="capacidade" className="space-y-6 mt-4">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <StatCard title="Sobrecarregados" value={overloaded.length} icon={AlertTriangle} subtitle="> 100% ocupado" />
-            <StatCard title="Atenção" value={atAttention.length} icon={TrendingUp} subtitle="80-100% ocupado" />
-            <StatCard title="Disponíveis" value={available.length} icon={UserCog} subtitle="≤ 80% ocupado" />
-            <StatCard title="Total Ativos" value={activeConsultants.length} icon={Users} />
-          </div>
 
-          <div className="bg-card rounded-xl border p-5">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold text-sm">Ranking de Ocupação</h3>
-              <Link to="/allocations" className="text-xs text-primary hover:underline flex items-center gap-1">Gerenciar <ArrowRight className="w-3 h-3" /></Link>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {activeConsultants.sort((a, b) => getOccupancy(b.id) - getOccupancy(a.id)).map(c => {
-                const occ = getOccupancy(c.id);
-                const weekAllocs = getWeekAllocations(c.id);
-                const turnos = weekAllocs.length;
-                const projIds = [...new Set(weekAllocs.map(a => a.project_id).filter(Boolean))];
-                return (
-                  <div key={c.id} className={`p-4 rounded-lg border bg-background ${occ > 100 ? 'border-red-200' : occ > 80 ? 'border-yellow-200' : 'border-border'}`}>
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-medium truncate">{c.name}</span>
-                      <span className={`text-xs font-bold ${occ > 100 ? 'text-red-600' : occ > 80 ? 'text-yellow-600' : 'text-green-600'}`}>{Math.round(occ)}%</span>
-                    </div>
-                    <CapacityGauge percentage={occ} />
-                    <div className="mt-2 flex items-center justify-between text-[11px] text-muted-foreground">
-                      <span>{turnos}/{TURNOS_SEMANA_CHEIA} turnos esta semana</span>
-                      <span>{projIds.length} projeto{projIds.length !== 1 ? 's' : ''}</span>
-                    </div>
-                    {projIds.map(pid => (
-                      <div key={pid} className="mt-1 flex items-center justify-between text-[10px]">
-                        <span className="truncate text-muted-foreground max-w-[160px]">{getProjectName(pid)}</span>
-                        <span className="text-muted-foreground">{weekAllocs.filter(a => a.project_id === pid).length} turnos</span>
-                      </div>
-                    ))}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          <div className="bg-card rounded-xl border p-5">
-            <h3 className="font-semibold text-sm mb-4">Distribuição por Especialidade</h3>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-              {['financeiro', 'contabil', 'fiscal', 'estoque', 'vendas', 'ti', 'rh', 'integracao', 'customizacao', 'geral'].map(esp => {
-                const count = activeConsultants.filter(c => c.especialidade_principal === esp).length;
-                if (count === 0) return null;
-                const labels = { financeiro: 'Financeiro', contabil: 'Contábil', fiscal: 'Fiscal', estoque: 'Estoque', vendas: 'Vendas', ti: 'TI', rh: 'RH', integracao: 'Integração', customizacao: 'Customização', geral: 'Geral' };
-                return (
-                  <div key={esp} className="text-center p-3 rounded-lg bg-background border">
-                    <p className="text-xl font-bold text-primary">{count}</p>
-                    <p className="text-[10px] text-muted-foreground mt-1">{labels[esp]}</p>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </TabsContent>
       </Tabs>
     </div>
   );

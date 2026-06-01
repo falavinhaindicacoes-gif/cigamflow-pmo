@@ -11,7 +11,6 @@ import Projects from '@/pages/Projects';
 import ProjectDetail from '@/pages/ProjectDetail';
 import Clients from '@/pages/Clients';
 import Consultants from '@/pages/Consultants';
-import Allocations from '@/pages/Allocations';
 import Activities from '@/pages/Activities';
 import StatusReports from '@/pages/StatusReports';
 import Settings from '@/pages/Settings';
@@ -51,7 +50,6 @@ const AuthenticatedApp = () => {
         <Route path="/projects/:id" element={<ProjectDetail />} />
         <Route path="/clients" element={<Clients />} />
         <Route path="/consultants" element={<Consultants />} />
-        <Route path="/allocations" element={<Allocations />} />
         <Route path="/activities" element={<Activities />} />
         <Route path="/reports" element={<StatusReports />} />
         <Route path="/settings" element={<Settings />} />

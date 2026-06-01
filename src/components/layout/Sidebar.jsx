@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
-  LayoutDashboard, FolderKanban, UserCog, CalendarClock,
+  LayoutDashboard, FolderKanban, UserCog,
   ListChecks, Building2, FileText, ChevronLeft, ChevronRight,
   Menu, X, Settings, Database, CalendarDays, LayoutTemplate
 } from 'lucide-react';
@@ -13,7 +13,6 @@ const navItems = [
   { path: '/projects', icon: FolderKanban, label: 'Projetos' },
   { path: '/clients', icon: Building2, label: 'Clientes' },
   { path: '/consultants', icon: UserCog, label: 'Consultores' },
-  { path: '/allocations', icon: CalendarClock, label: 'Alocações' },
   { path: '/activities', icon: ListChecks, label: 'Lista de Atividades' },
   { path: '/reports', icon: FileText, label: 'Status Reports' },
   { path: '/schedule', icon: CalendarDays, label: 'Agenda' },
