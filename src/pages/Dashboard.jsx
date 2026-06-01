@@ -18,7 +18,7 @@ export default function Dashboard() {
   const { data: allocations = [] } = useQuery({ queryKey: ['allocations'], queryFn: () => base44.entities.Allocation.list('-created_date', 500), staleTime: 0 });
 
   // Projects by status
-  const activeProjects = projects.filter(p => p.status === 'em_andamento');
+  const activeProjects = projects.filter(p => p.status === 'em_andamento' || p.status === 'nao_iniciado');
   const pausedProjects = projects.filter(p => p.status === 'pausado');
   const cancelledProjects = projects.filter(p => p.status === 'cancelado');
 
@@ -45,7 +45,7 @@ export default function Dashboard() {
         {/* EXECUTIVO */}
         <TabsContent value="executivo" className="space-y-6 mt-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <StatCard title="Projetos Ativos" value={activeProjects.length} icon={FolderKanban} subtitle={`${projects.length} total na carteira`} />
+            <StatCard title="Projetos em Carteira" value={activeProjects.length} icon={FolderKanban} subtitle={`${projects.length} total na carteira`} />
             <StatCard title="Projetos Pausados" value={pausedProjects.length} icon={PauseCircle} subtitle="Aguardando retomada" />
             <StatCard title="Projetos Cancelados" value={cancelledProjects.length} icon={XCircle} subtitle="Encerrados" />
             <StatCard title="Horas Previstas (Ativos)" value={`${totalHorasPrevistas}h`} icon={Clock} subtitle={`${totalHorasRealizadas}h em alocações`} />
@@ -86,7 +86,7 @@ export default function Dashboard() {
             {/* Projetos Ativos */}
             <div className="bg-card rounded-xl border p-5">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="font-semibold text-sm">Projetos Ativos</h3>
+                <h3 className="font-semibold text-sm">Projetos em Carteira</h3>
                 <Link to="/projects" className="text-xs text-primary hover:underline flex items-center gap-1">Ver todos <ArrowRight className="w-3 h-3" /></Link>
               </div>
               {activeProjects.length === 0 ? (
