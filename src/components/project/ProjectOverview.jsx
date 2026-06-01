@@ -52,12 +52,7 @@ export default function ProjectOverview({ project, client, onUpdate }) {
             <Users className="w-4 h-4" /> Horas
           </div>
           <div className="text-sm font-medium">{form.horas_realizadas || 0} / {form.horas_previstas || 0}h</div>
-          <div className="text-xs text-muted-foreground">
-            {form.horas_previstas > 0
-              ? `${Math.round((form.horas_realizadas || 0) / form.horas_previstas * 100)}% consumido`
-              : 'Sem estimativa'
-            }
-          </div>
+          <div className="text-xs text-muted-foreground">{form.percentual_progresso || 0}% concluído</div>
         </div>
       </div>
 

@@ -19,8 +19,6 @@ export default function Dashboard() {
 
   const { data: projects = [] } = useQuery({ queryKey: ['projects'], queryFn: () => base44.entities.Project.list('-created_date', 100), staleTime: 0 });
   const { data: clients = [] } = useQuery({ queryKey: ['clients'], queryFn: () => base44.entities.Client.list('-created_date', 100), staleTime: 0 });
-  const { data: allocations = [] } = useQuery({ queryKey: ['allocations'], queryFn: () => base44.entities.Allocation.list('-created_date', 500), staleTime: 0 });
-  const { data: moduleItems = [] } = useQuery({ queryKey: ['moduleItems'], queryFn: () => base44.entities.ModuleItem.list('-created_date', 1000), staleTime: 0 });
 
   // Projects by status
   const allActiveProjects = projects.filter(p => p.status === 'em_andamento' || p.status === 'nao_iniciado');
@@ -30,16 +28,8 @@ export default function Dashboard() {
   const pausedProjects = projects.filter(p => p.status === 'pausado');
   const cancelledProjects = projects.filter(p => p.status === 'cancelado');
 
-  // Horas previstas = soma das horas dos ModuleItems por projeto
-  const getHorasPrevistas = (projectId) =>
-    moduleItems.filter(i => i.project_id === projectId).reduce((sum, i) => sum + (i.horas_necessarias || 0), 0);
-
-  const activeProjectIds = new Set(activeProjects.map(p => p.id));
-  const getHorasRealizadas = (projectId) =>
-    moduleItems.filter(i => i.project_id === projectId && i.status === 'concluido').reduce((sum, i) => sum + (i.horas_necessarias || 0), 0);
-
-  const totalHorasPrevistas = activeProjects.reduce((sum, p) => sum + getHorasPrevistas(p.id), 0);
-  const totalHorasRealizadas = activeProjects.reduce((sum, p) => sum + getHorasRealizadas(p.id), 0);
+  const totalHorasPrevistas = activeProjects.reduce((sum, p) => sum + (p.horas_previstas || 0), 0);
+  const totalHorasRealizadas = activeProjects.reduce((sum, p) => sum + (p.horas_realizadas || 0), 0);
   const progressPercentage = totalHorasPrevistas > 0 ? Math.round(totalHorasRealizadas / totalHorasPrevistas * 100) : 0;
 
   // Activities
@@ -92,8 +82,8 @@ export default function Dashboard() {
             ) : (
               <div className="space-y-3">
                 {activeProjects.map(p => {
-                  const horasPrev = getHorasPrevistas(p.id);
-                  const horasReal = getHorasRealizadas(p.id);
+                  const horasPrev = p.horas_previstas || 0;
+                  const horasReal = p.horas_realizadas || 0;
                   const pct = horasPrev > 0 ? Math.min(Math.round(horasReal / horasPrev * 100), 100) : 0;
                   const clientName = clients.find(c => c.id === p.client_id)?.razao_social || '-';
                   return (
