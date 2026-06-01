@@ -186,10 +186,13 @@ export default function ProjectModules({ projectId }) {
   };
 
   // Only count items that belong to existing modules (avoid orphan items)
-  const moduleIds = new Set(modules.map(m => m.id));
-  const validItems = items.filter(i => moduleIds.has(i.project_module_id));
-  const totalHoras = validItems.reduce((s, i) => s + (i.horas_necessarias || 0), 0);
-  const projectProgress = getProjectProgress();
+   const moduleIds = new Set(modules.map(m => m.id));
+   const validItems = items.filter(i => moduleIds.has(i.project_module_id));
+   const totalHoras = validItems.reduce((s, i) => s + (i.horas_necessarias || 0), 0);
+   const horasRealizadas = validItems
+     .filter(i => i.status === 'concluido')
+     .reduce((s, i) => s + (i.horas_necessarias || 0), 0);
+   const projectProgress = getProjectProgress();
 
   return (
     <div className="space-y-4">
@@ -198,7 +201,7 @@ export default function ProjectModules({ projectId }) {
         <div className="flex items-center gap-4">
           <div>
             <p className="text-sm text-muted-foreground">
-              {modules.length} módulos · {validItems.length} atividades · {totalHoras}h previstas
+              {modules.length} módulos · {validItems.length} atividades · {totalHoras}h previstas · {horasRealizadas}h realizadas
             </p>
           </div>
           {validItems.length > 0 && (
