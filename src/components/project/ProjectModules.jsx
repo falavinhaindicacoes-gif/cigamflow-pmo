@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { Plus, Pencil, Trash2, GripVertical, ChevronDown, ChevronRight, LayoutTemplate, CheckCircle2, Circle, AlertCircle, XCircle } from 'lucide-react';
+import ModuleItemSubItems from './ModuleItemSubItems';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -52,6 +53,11 @@ export default function ProjectModules({ projectId }) {
   const { data: templateItems = [] } = useQuery({
     queryKey: ['allTemplateModuleItems'],
     queryFn: () => base44.entities.TemplateModuleItem.list('ordem', 1000),
+  });
+
+  const { data: allSubItems = [] } = useQuery({
+    queryKey: ['allModuleSubItems', projectId],
+    queryFn: () => base44.entities.ModuleSubItem.filter({ project_id: projectId }, 'ordem', 2000),
   });
 
   // Module mutations
@@ -125,18 +131,46 @@ export default function ProjectModules({ projectId }) {
 
   const sortedModules = [...modules].sort((a, b) => a.ordem - b.ordem);
 
+  // Progress based on sub-items if available, otherwise on item status
+  const getItemProgress = (itemId) => {
+    const subs = allSubItems.filter(s => s.module_item_id === itemId);
+    if (!subs.length) return null; // no sub-items
+    const done = subs.filter(s => s.concluido).length;
+    return { done, total: subs.length, pct: Math.round((done / subs.length) * 100) };
+  };
+
   const getModuleProgress = (moduleId) => {
     const mItems = items.filter(i => i.project_module_id === moduleId);
     if (!mItems.length) return 0;
-    const done = mItems.filter(i => i.status === 'concluido').length;
-    return Math.round((done / mItems.length) * 100);
+    // Use sub-item based progress if available, otherwise item status
+    let totalPct = 0;
+    mItems.forEach(item => {
+      const ip = getItemProgress(item.id);
+      if (ip) totalPct += ip.pct;
+      else totalPct += item.status === 'concluido' ? 100 : 0;
+    });
+    return Math.round(totalPct / mItems.length);
+  };
+
+  const getProjectProgress = () => {
+    if (!allSubItems.length && !items.length) return 0;
+    let totalPct = 0;
+    const moduleIds2 = new Set(modules.map(m => m.id));
+    const validItemsList = items.filter(i => moduleIds2.has(i.project_module_id));
+    if (!validItemsList.length) return 0;
+    validItemsList.forEach(item => {
+      const ip = getItemProgress(item.id);
+      if (ip) totalPct += ip.pct;
+      else totalPct += item.status === 'concluido' ? 100 : 0;
+    });
+    return Math.round(totalPct / validItemsList.length);
   };
 
   // Only count items that belong to existing modules (avoid orphan items)
   const moduleIds = new Set(modules.map(m => m.id));
   const validItems = items.filter(i => moduleIds.has(i.project_module_id));
   const totalHoras = validItems.reduce((s, i) => s + (i.horas_necessarias || 0), 0);
-  const horasConcluidas = validItems.filter(i => i.status === 'concluido').reduce((s, i) => s + (i.horas_necessarias || 0), 0);
+  const projectProgress = getProjectProgress();
 
   return (
     <div className="space-y-4">
@@ -148,10 +182,10 @@ export default function ProjectModules({ projectId }) {
               {modules.length} módulos · {validItems.length} atividades · {totalHoras}h previstas
             </p>
           </div>
-          {totalHoras > 0 && (
+          {validItems.length > 0 && (
             <div className="flex items-center gap-2">
-              <Progress value={totalHoras > 0 ? Math.round((horasConcluidas / totalHoras) * 100) : 0} className="w-24 h-1.5" />
-              <span className="text-xs text-muted-foreground">{totalHoras > 0 ? Math.round((horasConcluidas / totalHoras) * 100) : 0}%</span>
+              <Progress value={projectProgress} className="w-24 h-1.5" />
+              <span className="text-xs text-muted-foreground">{projectProgress}% do projeto</span>
             </div>
           )}
         </div>
@@ -230,34 +264,46 @@ export default function ProjectModules({ projectId }) {
                                         const iStatus = STATUS_CONFIG[item.status] || STATUS_CONFIG.nao_iniciado;
                                         return (
                                           <Draggable key={item.id} draggableId={item.id} index={iIdx}>
-                                            {(pI) => (
-                                              <div ref={pI.innerRef} {...pI.draggableProps} className="flex items-center gap-2 px-3 py-2 bg-background rounded-lg border border-border text-sm group">
-                                                <div {...pI.dragHandleProps} className="cursor-grab text-muted-foreground">
-                                                  <GripVertical className="w-3.5 h-3.5" />
-                                                </div>
-                                                <Select value={item.status} onValueChange={(v) => updateItem.mutate({ id: item.id, data: { status: v } })}>
-                                                  <SelectTrigger className="h-5 w-5 border-0 bg-transparent p-0 flex-shrink-0">
-                                                    <iStatus.icon className={`w-4 h-4 ${item.status === 'concluido' ? 'text-green-600' : item.status === 'em_andamento' ? 'text-blue-600' : 'text-gray-400'}`} />
-                                                  </SelectTrigger>
-                                                  <SelectContent>
-                                                    {Object.entries(STATUS_CONFIG).map(([v, c]) => (
-                                                      <SelectItem key={v} value={v}><span className={`px-2 py-0.5 rounded-full text-xs ${c.color}`}>{c.label}</span></SelectItem>
-                                                    ))}
-                                                  </SelectContent>
-                                                </Select>
-                                                <span className={`flex-1 min-w-0 truncate ${item.status === 'concluido' ? 'line-through text-muted-foreground' : ''}`}>{item.name}</span>
-                                                {item.responsavel && <span className="text-xs text-muted-foreground flex-shrink-0 hidden sm:block">{item.responsavel}</span>}
-                                                {item.horas_necessarias > 0 && <span className="text-xs font-medium text-muted-foreground flex-shrink-0">{item.horas_necessarias}h</span>}
-                                                <div className="flex gap-1 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                  <button onClick={() => { setEditingItem(item); setEditingItemModuleId(mod.id); setShowItemForm(true); }} className="p-1 hover:text-primary rounded text-muted-foreground">
-                                                    <Pencil className="w-3 h-3" />
-                                                  </button>
-                                                  <button onClick={() => { if (confirm('Excluir item?')) deleteItem.mutate(item.id); }} className="p-1 hover:text-destructive rounded text-muted-foreground">
-                                                    <Trash2 className="w-3 h-3" />
-                                                  </button>
-                                                </div>
-                                              </div>
-                                            )}
+                                           {(pI) => {
+                                             const itemProg = getItemProgress(item.id);
+                                             return (
+                                               <div ref={pI.innerRef} {...pI.draggableProps} className="px-3 py-2 bg-background rounded-lg border border-border text-sm group">
+                                                 <div className="flex items-center gap-2">
+                                                   <div {...pI.dragHandleProps} className="cursor-grab text-muted-foreground">
+                                                     <GripVertical className="w-3.5 h-3.5" />
+                                                   </div>
+                                                   <Select value={item.status} onValueChange={(v) => updateItem.mutate({ id: item.id, data: { status: v } })}>
+                                                     <SelectTrigger className="h-5 w-5 border-0 bg-transparent p-0 flex-shrink-0">
+                                                       <iStatus.icon className={`w-4 h-4 ${item.status === 'concluido' ? 'text-green-600' : item.status === 'em_andamento' ? 'text-blue-600' : 'text-gray-400'}`} />
+                                                     </SelectTrigger>
+                                                     <SelectContent>
+                                                       {Object.entries(STATUS_CONFIG).map(([v, c]) => (
+                                                         <SelectItem key={v} value={v}><span className={`px-2 py-0.5 rounded-full text-xs ${c.color}`}>{c.label}</span></SelectItem>
+                                                       ))}
+                                                     </SelectContent>
+                                                   </Select>
+                                                   <span className={`flex-1 min-w-0 truncate ${item.status === 'concluido' ? 'line-through text-muted-foreground' : ''}`}>{item.name}</span>
+                                                   {itemProg && (
+                                                     <div className="flex items-center gap-1 flex-shrink-0">
+                                                       <Progress value={itemProg.pct} className="w-12 h-1" />
+                                                       <span className="text-xs text-muted-foreground">{itemProg.pct}%</span>
+                                                     </div>
+                                                   )}
+                                                   {item.responsavel && <span className="text-xs text-muted-foreground flex-shrink-0 hidden sm:block">{item.responsavel}</span>}
+                                                   {item.horas_necessarias > 0 && <span className="text-xs font-medium text-muted-foreground flex-shrink-0">{item.horas_necessarias}h</span>}
+                                                   <div className="flex gap-1 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                     <button onClick={() => { setEditingItem(item); setEditingItemModuleId(mod.id); setShowItemForm(true); }} className="p-1 hover:text-primary rounded text-muted-foreground">
+                                                       <Pencil className="w-3 h-3" />
+                                                     </button>
+                                                     <button onClick={() => { if (confirm('Excluir item?')) deleteItem.mutate(item.id); }} className="p-1 hover:text-destructive rounded text-muted-foreground">
+                                                       <Trash2 className="w-3 h-3" />
+                                                     </button>
+                                                   </div>
+                                                 </div>
+                                                 <ModuleItemSubItems item={item} projectId={projectId} />
+                                               </div>
+                                             );
+                                           }}
                                           </Draggable>
                                         );
                                       })}

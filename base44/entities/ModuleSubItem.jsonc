@@ -1,0 +1,36 @@
+{
+  "name": "ModuleSubItem",
+  "type": "object",
+  "properties": {
+    "module_item_id": {
+      "type": "string",
+      "description": "ID do ModuleItem pai"
+    },
+    "project_module_id": {
+      "type": "string"
+    },
+    "project_id": {
+      "type": "string"
+    },
+    "company_id": {
+      "type": "string"
+    },
+    "name": {
+      "type": "string",
+      "description": "Nome do sub-item"
+    },
+    "concluido": {
+      "type": "boolean",
+      "default": false,
+      "description": "Se o sub-item foi conclu\u00eddo"
+    },
+    "ordem": {
+      "type": "number",
+      "default": 0
+    }
+  },
+  "required": [
+    "module_item_id",
+    "name"
+  ]
+}
