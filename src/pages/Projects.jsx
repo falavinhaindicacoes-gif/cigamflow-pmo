@@ -32,6 +32,17 @@ export default function Projects() {
     queryKey: ['clients'],
     queryFn: () => base44.entities.Client.list('-created_date', 200),
   });
+  const { data: moduleItems = [] } = useQuery({
+    queryKey: ['moduleItems'],
+    queryFn: () => base44.entities.ModuleItem.list('-created_date', 1000),
+  });
+
+  const getProgresso = (projectId) => {
+    const items = moduleItems.filter(i => i.project_id === projectId);
+    if (items.length === 0) return 0;
+    const concluidos = items.filter(i => i.status === 'concluido').length;
+    return Math.round((concluidos / items.length) * 100);
+  };
 
   const createMutation = useMutation({
     mutationFn: (data) => base44.entities.Project.create(data),
@@ -175,9 +186,9 @@ export default function Projects() {
                   <div className="w-32">
                     <div className="flex items-center justify-between text-xs mb-1">
                       <span className="text-muted-foreground">Progresso</span>
-                      <span className="font-medium">{project.percentual_progresso || 0}%</span>
+                      <span className="font-medium">{getProgresso(project.id)}%</span>
                     </div>
-                    <Progress value={project.percentual_progresso || 0} className="h-1.5" />
+                    <Progress value={getProgresso(project.id)} className="h-1.5" />
                   </div>
                   <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
                   <div onClick={e => e.preventDefault()}>
