@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import {
-  Building2, Users, Shield, Plus, Search, Pencil, Check, X, AlertCircle, Tag, Trash2
+  Building2, Users, Shield, Plus, Search, Pencil, Check, X, AlertCircle, Tag, Trash2, UserCog
 } from 'lucide-react';
 import PageHeader from '@/components/shared/PageHeader';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -24,6 +24,7 @@ export default function Settings() {
           <TabsTrigger value="usuarios" className="text-xs">Usuários</TabsTrigger>
           <TabsTrigger value="parametros" className="text-xs">Parâmetros</TabsTrigger>
           <TabsTrigger value="categorias" className="text-xs">Categorias de Template</TabsTrigger>
+          <TabsTrigger value="gerentes" className="text-xs">Gerentes de Projeto</TabsTrigger>
         </TabsList>
 
         <TabsContent value="empresas" className="mt-4">
@@ -40,6 +41,10 @@ export default function Settings() {
 
         <TabsContent value="categorias" className="mt-4">
           <CategoriasTemplateTab />
+        </TabsContent>
+
+        <TabsContent value="gerentes" className="mt-4">
+          <GerentesTab />
         </TabsContent>
       </Tabs>
     </div>
@@ -296,6 +301,72 @@ function CategoriasTemplateTab() {
           ))}
           {!isLoading && categories.length === 0 && (
             <p className="text-sm text-muted-foreground text-center py-4">Nenhuma categoria cadastrada</p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function GerentesTab() {
+  const [newName, setNewName] = useState('');
+  const queryClient = useQueryClient();
+
+  const { data: gerentes = [], isLoading } = useQuery({
+    queryKey: ['projectManagers'],
+    queryFn: () => base44.entities.ProjectManager.list('name', 200),
+  });
+
+  const createMutation = useMutation({
+    mutationFn: (name) => base44.entities.ProjectManager.create({ name, ativo: true }),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['projectManagers'] }); setNewName(''); },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id) => base44.entities.ProjectManager.delete(id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['projectManagers'] }),
+  });
+
+  return (
+    <div className="space-y-4 max-w-lg">
+      <div className="bg-card border rounded-xl p-5">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center">
+            <UserCog className="w-4 h-4 text-primary" />
+          </div>
+          <div>
+            <h3 className="font-semibold text-sm">Gerentes de Projeto</h3>
+            <p className="text-xs text-muted-foreground">Lista de GPs disponíveis na criação de projetos</p>
+          </div>
+        </div>
+
+        <div className="flex gap-2 mb-4">
+          <Input
+            placeholder="Nome do gerente..."
+            value={newName}
+            onChange={e => setNewName(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter' && newName.trim()) createMutation.mutate(newName.trim()); }}
+          />
+          <Button onClick={() => { if (newName.trim()) createMutation.mutate(newName.trim()); }} disabled={!newName.trim() || createMutation.isPending}>
+            <Plus className="w-4 h-4" />
+          </Button>
+        </div>
+
+        <div className="space-y-1.5">
+          {isLoading ? <p className="text-sm text-muted-foreground">Carregando...</p> : null}
+          {gerentes.map(g => (
+            <div key={g.id} className="flex items-center justify-between px-3 py-2 bg-muted/40 rounded-lg">
+              <span className="text-sm">{g.name}</span>
+              <button
+                onClick={() => { if (confirm(`Excluir "${g.name}"?`)) deleteMutation.mutate(g.id); }}
+                className="p-1 hover:text-destructive text-muted-foreground rounded transition-colors"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          ))}
+          {!isLoading && gerentes.length === 0 && (
+            <p className="text-sm text-muted-foreground text-center py-4">Nenhum gerente cadastrado</p>
           )}
         </div>
       </div>

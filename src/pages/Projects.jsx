@@ -46,7 +46,11 @@ export default function Projects() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['projects'] }),
   });
 
-  const gerentes = [...new Set(projects.map(p => p.gerente_projeto).filter(Boolean))];
+  const { data: gerentesFilter = [] } = useQuery({
+    queryKey: ['projectManagers'],
+    queryFn: () => base44.entities.ProjectManager.list('name', 200),
+  });
+  const gerentes = gerentesFilter.map(g => g.name);
 
   const filtered = projects.filter(p => {
     const matchSearch = !search || p.name?.toLowerCase().includes(search.toLowerCase()) ||
@@ -212,6 +216,11 @@ function CreateProjectDialog({ open, onOpenChange, clients, onSubmit, isLoading 
   const [form, setForm] = useState({ name: '', client_id: '', gerente_projeto: '', tipo_implantacao: 'remota', fase_atual: 'comercial', status: 'nao_iniciado' });
   const update = (field, value) => setForm(prev => ({ ...prev, [field]: value }));
 
+  const { data: gerentes = [] } = useQuery({
+    queryKey: ['projectManagers'],
+    queryFn: () => base44.entities.ProjectManager.list('name', 200),
+  });
+
   const handleSubmit = (e) => {
     e.preventDefault();
     onSubmit(form);
@@ -238,7 +247,12 @@ function CreateProjectDialog({ open, onOpenChange, clients, onSubmit, isLoading 
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label>Gerente do Projeto</Label>
-              <Input value={form.gerente_projeto} onChange={(e) => update('gerente_projeto', e.target.value)} />
+              <Select value={form.gerente_projeto} onValueChange={(v) => update('gerente_projeto', v)}>
+                <SelectTrigger><SelectValue placeholder="Selecione o GP" /></SelectTrigger>
+                <SelectContent>
+                  {gerentes.map(g => <SelectItem key={g.id} value={g.name}>{g.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
             </div>
             <div>
               <Label>Tipo de Implantação</Label>
