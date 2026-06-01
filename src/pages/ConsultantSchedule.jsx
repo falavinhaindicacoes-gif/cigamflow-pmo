@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { format, addDays, subDays, startOfWeek, addWeeks, subWeeks, addMonths, subMonths, startOfMonth, endOfMonth, addQuarters, subQuarters, startOfQuarter, endOfQuarter } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { ChevronLeft, ChevronRight, CalendarDays, BarChart3 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, CalendarDays, BarChart3, PieChart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import PageHeader from '@/components/shared/PageHeader';
@@ -12,6 +12,7 @@ import ScheduleWeekView from '@/components/schedule/ScheduleWeekView';
 import ScheduleMonthView from '@/components/schedule/ScheduleMonthView';
 import ScheduleMultiWeekView from '@/components/schedule/ScheduleMultiWeekView';
 import ScheduleFinanceDash from '@/components/schedule/ScheduleFinanceDash';
+import ScheduleOccupancyDash from '@/components/schedule/ScheduleOccupancyDash';
 
 const VIEW_OPTIONS = [
   { key: 'semana', label: 'Semana' },
@@ -117,6 +118,7 @@ export default function ConsultantSchedule() {
           <PageHeader title="Agenda de Consultores" description="Alocações por turno com previsão financeira" />
           <TabsList>
             <TabsTrigger value="agenda" className="gap-1.5"><CalendarDays className="w-4 h-4" /> Agenda</TabsTrigger>
+            <TabsTrigger value="ocupacao" className="gap-1.5"><PieChart className="w-4 h-4" /> Ocupação</TabsTrigger>
             <TabsTrigger value="financeiro" className="gap-1.5"><BarChart3 className="w-4 h-4" /> Financeiro</TabsTrigger>
           </TabsList>
         </div>
@@ -194,6 +196,16 @@ export default function ConsultantSchedule() {
               getProjectName={getProjectName}
             />
           )}
+        </TabsContent>
+
+        <TabsContent value="ocupacao" className="mt-0">
+          <ScheduleOccupancyDash
+            allocations={allocations}
+            consultants={consultants}
+            projects={projects}
+            clients={clients}
+            baseDate={base}
+          />
         </TabsContent>
 
         <TabsContent value="financeiro" className="mt-0">

@@ -32,6 +32,7 @@ export default function AllocationCellDialog({ cell, projects, clients, onClose,
     const selectedProject = projects.find((p) => p.id === projectId);
     createMutation.mutate({
       consultant_id: consultant.id,
+      company_id: consultant.company_id || undefined,
       project_id: projectId || undefined,
       client_id: selectedProject?.client_id || undefined,
       data: format(date, 'yyyy-MM-dd'),
