@@ -3,6 +3,7 @@ import { format, startOfWeek, endOfWeek, addDays, startOfMonth, endOfMonth, pars
 import { ptBR } from 'date-fns/locale';
 import { RadialBarChart, RadialBar, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid, Legend, Cell } from 'recharts';
 import { Users, TrendingUp, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { Input } from '@/components/ui/input';
 
 // Turnos máximos por período: 3 turnos/dia × 5 dias úteis = 15/semana, ×4 ~= 60/mês
 const TURNOS_DIA = 3;
@@ -60,10 +61,18 @@ function StatBox({ icon: Icon, label, value, color, sub }) {
 
 export default function ScheduleOccupancyDash({ allocations, consultants, projects, clients, baseDate }) {
   const [periodo, setPeriodo] = useState('semana');
+  const today = format(new Date(), 'yyyy-MM-dd');
+  const [customStart, setCustomStart] = useState(today);
+  const [customEnd, setCustomEnd] = useState(today);
 
   const range = useMemo(() => {
-    return periodo === 'semana' ? getWeekRange(baseDate) : getMonthRange(baseDate);
-  }, [periodo, baseDate]);
+    if (periodo === 'semana') return getWeekRange(baseDate);
+    if (periodo === 'mes') return getMonthRange(baseDate);
+    // personalizado
+    const start = customStart ? new Date(customStart + 'T00:00:00') : new Date();
+    const end = customEnd ? new Date(customEnd + 'T23:59:59') : new Date();
+    return { start, end };
+  }, [periodo, baseDate, customStart, customEnd]);
 
   const diasUteis = useMemo(() => countDiasUteis(range.start, range.end), [range]);
   const turnosMaximos = diasUteis * TURNOS_DIA;
@@ -126,14 +135,16 @@ export default function ScheduleOccupancyDash({ allocations, consultants, projec
 
   const labelPeriodo = periodo === 'semana'
     ? `${format(range.start, 'dd/MM')} – ${format(range.end, 'dd/MM/yyyy')}`
-    : format(range.start, 'MMMM yyyy', { locale: ptBR });
+    : periodo === 'mes'
+    ? format(range.start, 'MMMM yyyy', { locale: ptBR })
+    : `${format(range.start, 'dd/MM/yyyy')} – ${format(range.end, 'dd/MM/yyyy')}`;
 
   return (
     <div className="space-y-5">
       {/* Período */}
       <div className="flex items-center gap-3 flex-wrap">
         <div className="flex rounded-lg border border-border overflow-hidden">
-          {[{ key: 'semana', label: 'Semana' }, { key: 'mes', label: 'Mês' }].map(v => (
+          {[{ key: 'semana', label: 'Semana' }, { key: 'mes', label: 'Mês' }, { key: 'personalizado', label: 'Personalizado' }].map(v => (
             <button
               key={v.key}
               onClick={() => setPeriodo(v.key)}
@@ -143,6 +154,13 @@ export default function ScheduleOccupancyDash({ allocations, consultants, projec
             </button>
           ))}
         </div>
+        {periodo === 'personalizado' && (
+          <div className="flex items-center gap-2">
+            <Input type="date" value={customStart} onChange={e => setCustomStart(e.target.value)} className="h-8 text-xs w-36" />
+            <span className="text-xs text-muted-foreground">até</span>
+            <Input type="date" value={customEnd} onChange={e => setCustomEnd(e.target.value)} className="h-8 text-xs w-36" />
+          </div>
+        )}
         <span className="text-sm text-muted-foreground capitalize">{labelPeriodo} — {diasUteis} dias úteis · {turnosMaximos} turnos máx./consultor</span>
       </div>
 
