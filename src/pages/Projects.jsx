@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Link } from 'react-router-dom';
-import { Plus, Search, ArrowRight, FolderKanban, ShieldAlert, Star, Clock } from 'lucide-react';
+import { Plus, Search, ArrowRight, FolderKanban, ShieldAlert, Star, Clock, MoreVertical, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -13,6 +13,7 @@ import HealthBadge from '@/components/shared/HealthBadge';
 import StatCard from '@/components/shared/StatCard';
 import { FASES_PROJETO, getFaseLabel, getStatusLabel } from '@/lib/constants';
 import { Progress } from '@/components/ui/progress';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
 export default function Projects() {
   const [search, setSearch] = useState('');
@@ -38,6 +39,11 @@ export default function Projects() {
       queryClient.invalidateQueries({ queryKey: ['projects'] });
       setShowCreate(false);
     },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id) => base44.entities.Project.delete(id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['projects'] }),
   });
 
   const gerentes = [...new Set(projects.map(p => p.gerente_projeto).filter(Boolean))];
@@ -170,6 +176,20 @@ export default function Projects() {
                     <Progress value={project.percentual_progresso || 0} className="h-1.5" />
                   </div>
                   <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                  <div onClick={e => e.preventDefault()}>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button className="p-1 rounded hover:bg-muted text-muted-foreground" onClick={e => e.preventDefault()}>
+                          <MoreVertical className="w-4 h-4" />
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => { if (confirm(`Excluir o projeto "${project.name}"? Esta ação não pode ser desfeita.`)) deleteMutation.mutate(project.id); }}>
+                          <Trash2 className="w-4 h-4 mr-2" /> Excluir Projeto
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
                 </div>
               </Link>
             );
