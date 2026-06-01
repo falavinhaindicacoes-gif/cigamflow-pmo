@@ -415,36 +415,36 @@ export default function ProjectModules({ projectId }) {
 }
 
 function ModuleFormDialog({ open, onClose, initial, onSubmit }) {
-  const [form, setForm] = useState({ name: '', descricao: '', status: 'nao_iniciado' });
-  useEffect(() => {
-    setForm({ name: initial?.name || '', descricao: initial?.descricao || '', status: initial?.status || 'nao_iniciado' });
-  }, [initial, open]);
-  return (
-    <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
-      <DialogContent>
-        <DialogHeader><DialogTitle>{initial ? 'Editar Módulo' : 'Novo Módulo'}</DialogTitle></DialogHeader>
-        <div className="space-y-3">
-          <div><Label>Nome *</Label><Input value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} /></div>
-          <div><Label>Descrição</Label><Textarea value={form.descricao} onChange={e => setForm(p => ({ ...p, descricao: e.target.value }))} rows={2} /></div>
-          <div>
-            <Label>Status</Label>
-            <Select value={form.status} onValueChange={(v) => setForm(p => ({ ...p, status: v }))}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {Object.entries(STATUS_CONFIG).map(([v, c]) => (
-                  <SelectItem key={v} value={v}>{c.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="flex gap-2 justify-end pt-2">
-            <Button variant="outline" onClick={onClose}>Cancelar</Button>
-            <Button onClick={() => { if (form.name) onSubmit(form); }} disabled={!form.name}>Salvar</Button>
-          </div>
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
+   const [form, setForm] = useState({ name: '', descricao: '', status: 'nao_iniciado' });
+   useEffect(() => {
+     setForm({ name: initial?.name || '', descricao: initial?.descricao || '', status: initial?.status || 'nao_iniciado' });
+   }, [initial, open]);
+   return (
+     <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
+       <DialogContent>
+         <DialogHeader><DialogTitle>{initial ? 'Editar Módulo' : 'Novo Módulo'}</DialogTitle></DialogHeader>
+         <div className="space-y-3">
+           <div><Label>Nome *</Label><Input value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} /></div>
+           <div><Label>Descrição</Label><Textarea value={form.descricao} onChange={e => setForm(p => ({ ...p, descricao: e.target.value }))} rows={2} /></div>
+           <div>
+             <Label>Status</Label>
+             <Select value={form.status} onValueChange={(v) => setForm(p => ({ ...p, status: v }))}>
+               <SelectTrigger><SelectValue /></SelectTrigger>
+               <SelectContent>
+                 {Object.entries(STATUS_CONFIG).map(([v, c]) => (
+                   <SelectItem key={v} value={v}>{c.label}</SelectItem>
+                 ))}
+               </SelectContent>
+             </Select>
+           </div>
+           <div className="flex gap-2 justify-end pt-2">
+             <Button variant="outline" onClick={onClose}>Cancelar</Button>
+             <Button onClick={() => { if (form.name) { onSubmit(form); onClose(); } }} disabled={!form.name}>Salvar</Button>
+           </div>
+         </div>
+       </DialogContent>
+     </Dialog>
+   );
 }
 
 function ItemFormDialog({ open, onClose, initial, onSubmit }) {
@@ -481,7 +481,7 @@ function ItemFormDialog({ open, onClose, initial, onSubmit }) {
           <div><Label>Horas Detalhadas (observações)</Label><Textarea value={form.horas_detalhadas} onChange={e => setForm(p => ({ ...p, horas_detalhadas: e.target.value }))} rows={2} placeholder="Detalhamento ou observações sobre as horas..." /></div>
           <div className="flex gap-2 justify-end pt-2">
             <Button variant="outline" onClick={onClose}>Cancelar</Button>
-            <Button onClick={() => { if (form.name) onSubmit(form); }} disabled={!form.name}>Salvar</Button>
+            <Button onClick={() => { if (form.name) { onSubmit(form); onClose(); } }} disabled={!form.name}>Salvar</Button>
           </div>
         </div>
       </DialogContent>
