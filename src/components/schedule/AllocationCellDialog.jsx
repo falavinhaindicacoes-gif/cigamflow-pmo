@@ -175,6 +175,7 @@ export default function AllocationCellDialog({ cell, projects, clients, onClose,
   });
 
   const handleSave = (concludeAndSync = false) => {
+    if (tipoAgenda === 'outros' && !obs.trim()) return;
     const selectedProject = projects.find(p => p.id === projectId);
     createMutation.mutate({
       consultant_id: consultant.id,
@@ -267,8 +268,16 @@ export default function AllocationCellDialog({ cell, projects, clients, onClose,
 
           {/* Observações */}
           <div className="space-y-1">
-            <Label>Observações</Label>
-            <Textarea placeholder="Ex: reunião kick-off, suporte remoto..." value={obs} onChange={(e) => setObs(e.target.value)} className="h-16" />
+            <Label>Observações {tipoAgenda === 'outros' && <span className="text-destructive">*</span>}</Label>
+            <Textarea
+              placeholder={tipoAgenda === 'outros' ? 'Descreva o motivo desta agenda...' : 'Ex: reunião kick-off, suporte remoto...'}
+              value={obs}
+              onChange={(e) => setObs(e.target.value)}
+              className={`h-16 ${tipoAgenda === 'outros' && !obs.trim() ? 'border-destructive' : ''}`}
+            />
+            {tipoAgenda === 'outros' && !obs.trim() && (
+              <p className="text-xs text-destructive">Obrigatório quando a finalidade é "Outro"</p>
+            )}
           </div>
         </div>
 

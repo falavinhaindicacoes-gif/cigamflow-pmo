@@ -171,6 +171,7 @@ export default function AllocationEditDialog({ allocation, consultant, projects,
   });
 
   const handleSave = async (encerrar = false) => {
+    if (tipoAgenda === 'outros' && !obs.trim()) return;
     if (encerrar) {
       if (tipoAgenda === 'projeto_modulos' && selectedModuleItemIds.length > 0)
         await syncModuleItems.mutateAsync(selectedModuleItemIds);
@@ -268,8 +269,16 @@ export default function AllocationEditDialog({ allocation, consultant, projects,
 
           {/* Observações */}
           <div className="space-y-1">
-            <Label>Observações</Label>
-            <Textarea placeholder="Ex: reunião kick-off, suporte remoto..." value={obs} onChange={(e) => setObs(e.target.value)} className="h-16" />
+            <Label>Observações {tipoAgenda === 'outros' && <span className="text-destructive">*</span>}</Label>
+            <Textarea
+              placeholder={tipoAgenda === 'outros' ? 'Descreva o motivo desta agenda...' : 'Ex: reunião kick-off, suporte remoto...'}
+              value={obs}
+              onChange={(e) => setObs(e.target.value)}
+              className={`h-16 ${tipoAgenda === 'outros' && !obs.trim() ? 'border-destructive' : ''}`}
+            />
+            {tipoAgenda === 'outros' && !obs.trim() && (
+              <p className="text-xs text-destructive">Obrigatório quando a finalidade é "Outro"</p>
+            )}
           </div>
         </div>
 
