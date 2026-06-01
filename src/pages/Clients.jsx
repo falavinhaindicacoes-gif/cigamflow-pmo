@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { Plus, Search, Building2, Phone, Mail, Pencil, FolderKanban } from 'lucide-react';
+import { Plus, Search, Building2, Phone, Mail, Pencil, FolderKanban, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -45,6 +45,11 @@ export default function Clients() {
   const updateMutation = useMutation({
     mutationFn: ({ id, data }) => base44.entities.Client.update(id, data),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['clients'] }); setEditing(null); },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id) => base44.entities.Client.delete(id),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['clients'] }); setSelected(null); },
   });
 
   const getClientProjects = (clientId) => projects.filter(p => p.client_id === clientId);
@@ -119,6 +124,9 @@ export default function Clients() {
                   <div className="flex items-center gap-1 flex-shrink-0">
                     <button onClick={e => { e.stopPropagation(); setEditing(client); }} className="p-1.5 hover:bg-muted rounded-lg">
                       <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
+                    </button>
+                    <button onClick={e => { e.stopPropagation(); if (confirm(`Excluir o cliente "${client.razao_social}"? Esta ação não pode ser desfeita.`)) deleteMutation.mutate(client.id); }} className="p-1.5 hover:bg-red-50 rounded-lg">
+                      <Trash2 className="w-3.5 h-3.5 text-muted-foreground hover:text-destructive" />
                     </button>
                     <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
                       client.situacao === 'ativo' ? 'bg-green-100 text-green-700' :
