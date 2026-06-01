@@ -110,7 +110,6 @@ export default function ProjectOverview({ project, client, onUpdate }) {
           <div><Label>Data Início</Label><Input type="date" value={form.data_inicio || ''} onChange={(e) => update('data_inicio', e.target.value)} /></div>
           <div><Label>Data Prevista Término</Label><Input type="date" value={form.data_prevista_termino || ''} onChange={(e) => update('data_prevista_termino', e.target.value)} /></div>
           <div><Label>Horas Previstas</Label><Input type="number" value={form.horas_previstas || ''} onChange={(e) => update('horas_previstas', parseFloat(e.target.value) || 0)} /></div>
-          <div><Label>Horas Realizadas</Label><Input type="number" value={form.horas_realizadas || ''} onChange={(e) => update('horas_realizadas', parseFloat(e.target.value) || 0)} /></div>
           <div><Label>Tipo Implantação</Label>
             <Select value={form.tipo_implantacao || 'remota'} onValueChange={(v) => update('tipo_implantacao', v)}>
               <SelectTrigger><SelectValue /></SelectTrigger>
