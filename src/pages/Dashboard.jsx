@@ -16,16 +16,20 @@ export default function Dashboard() {
   const { data: projects = [] } = useQuery({ queryKey: ['projects'], queryFn: () => base44.entities.Project.list('-created_date', 100), staleTime: 0 });
   const { data: clients = [] } = useQuery({ queryKey: ['clients'], queryFn: () => base44.entities.Client.list('-created_date', 100), staleTime: 0 });
   const { data: allocations = [] } = useQuery({ queryKey: ['allocations'], queryFn: () => base44.entities.Allocation.list('-created_date', 500), staleTime: 0 });
+  const { data: moduleItems = [] } = useQuery({ queryKey: ['moduleItems'], queryFn: () => base44.entities.ModuleItem.list('-created_date', 1000), staleTime: 0 });
 
   // Projects by status
   const activeProjects = projects.filter(p => p.status === 'em_andamento' || p.status === 'nao_iniciado');
   const pausedProjects = projects.filter(p => p.status === 'pausado');
   const cancelledProjects = projects.filter(p => p.status === 'cancelado');
 
-  // Horas consolidadas dos projetos ativos
-  const totalHorasPrevistas = activeProjects.reduce((sum, p) => sum + (p.horas_previstas || 0), 0);
-  // Horas realizadas = soma das horas das alocações vinculadas a projetos ativos
+  // Horas previstas = soma das horas dos ModuleItems por projeto
+  const getHorasPrevistas = (projectId) =>
+    moduleItems.filter(i => i.project_id === projectId).reduce((sum, i) => sum + (i.horas_necessarias || 0), 0);
+
   const activeProjectIds = new Set(activeProjects.map(p => p.id));
+  const totalHorasPrevistas = activeProjects.reduce((sum, p) => sum + getHorasPrevistas(p.id), 0);
+  // Horas realizadas = soma das horas das alocações vinculadas a projetos ativos
   const totalHorasRealizadas = allocations
     .filter(a => a.project_id && activeProjectIds.has(a.project_id))
     .reduce((sum, a) => sum + (a.horas_semanais || 0), 0);
@@ -59,7 +63,7 @@ export default function Dashboard() {
             ) : (
               <div className="space-y-3">
                 {activeProjects.map(p => {
-                  const horasPrev = p.horas_previstas || 0;
+                  const horasPrev = getHorasPrevistas(p.id);
                   const horasReal = allocations
                     .filter(a => a.project_id === p.id)
                     .reduce((sum, a) => sum + (a.horas_semanais || 0), 0);
