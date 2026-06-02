@@ -192,19 +192,8 @@ export default function ProjectModules({ projectId, project }) {
     return Math.round(totalPct / mItems.length);
   };
 
-  const getProjectProgress = () => {
-    if (!allSubItems.length && !items.length) return 0;
-    let totalPct = 0;
-    const moduleIds2 = new Set(modules.map(m => m.id));
-    const validItemsList = items.filter(i => moduleIds2.has(i.project_module_id));
-    if (!validItemsList.length) return 0;
-    validItemsList.forEach(item => {
-      const ip = getItemProgress(item.id);
-      if (ip) totalPct += ip.pct;
-      else totalPct += item.status === 'concluido' ? 100 : 0;
-    });
-    return Math.round(totalPct / validItemsList.length);
-  };
+  // Project progress comes from BD (calculated based on hours)
+  const getProjectProgress = () => project?.percentual_progresso || 0;
 
   // Only count items that belong to existing modules (avoid orphan items)
    const moduleIds = new Set(modules.map(m => m.id));
@@ -213,7 +202,7 @@ export default function ProjectModules({ projectId, project }) {
    const horasRealizadas = validItems
      .filter(i => i.status === 'concluido')
      .reduce((s, i) => s + (i.horas_necessarias || 0), 0);
-   const projectProgress = getProjectProgress();
+   // Removed - using project.percentual_progresso directly from DB
 
   return (
     <div className="space-y-4">
