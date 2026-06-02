@@ -222,7 +222,7 @@ export default function ProjectModules({ projectId, project }) {
           )}
         </div>
         <div className="flex gap-2">
-           <Button variant="ghost" size="sm" onClick={() => updateProjectMetrics(projectId)} className="text-xs text-muted-foreground hover:text-foreground">
+           <Button variant="ghost" size="sm" onClick={async () => { await updateProjectMetrics(projectId); queryClient.invalidateQueries({ queryKey: ['projects', projectId] }); }} className="text-xs text-muted-foreground hover:text-foreground">
              Recalcular
            </Button>
            <Button variant="outline" size="sm" onClick={() => setShowLoadTemplate(true)}>
