@@ -93,8 +93,9 @@ function AvulsaActivitiesSelector({ projectId, selectedIds, onToggle }) {
     queryKey: ['activities-avulsas', projectId],
     queryFn: () =>
       projectId
-        ? base44.entities.Activity.filter({ project_id: projectId })
-        : base44.entities.Activity.list(),
+        ? base44.entities.Activity.filter({ project_id: projectId }, '-created_date', 500)
+        : Promise.resolve([]),
+    enabled: !!projectId,
   });
 
   const open = activities.filter(a => a.status !== 'concluido' && a.status !== 'cancelado');
