@@ -82,6 +82,7 @@ export default function ProjectModules({ projectId, project }) {
      onSuccess: () => {
        queryClient.invalidateQueries({ queryKey: ['moduleItems', projectId] });
        updateProjectMetrics(projectId);
+       queryClient.invalidateQueries({ queryKey: ['projects', projectId] });
        setShowItemForm(false);
        setEditingItem(null);
      },
@@ -91,6 +92,7 @@ export default function ProjectModules({ projectId, project }) {
      onSuccess: () => {
        queryClient.invalidateQueries({ queryKey: ['moduleItems', projectId] });
        updateProjectMetrics(projectId);
+       queryClient.invalidateQueries({ queryKey: ['projects', projectId] });
      },
    });
    const deleteItem = useMutation({
@@ -98,6 +100,7 @@ export default function ProjectModules({ projectId, project }) {
      onSuccess: () => {
        queryClient.invalidateQueries({ queryKey: ['moduleItems', projectId] });
        updateProjectMetrics(projectId);
+       queryClient.invalidateQueries({ queryKey: ['projects', projectId] });
      },
    });
 
@@ -222,9 +225,6 @@ export default function ProjectModules({ projectId, project }) {
           )}
         </div>
         <div className="flex gap-2">
-           <Button variant="ghost" size="sm" onClick={async () => { await updateProjectMetrics(projectId); queryClient.invalidateQueries({ queryKey: ['projects', projectId] }); }} className="text-xs text-muted-foreground hover:text-foreground">
-             Recalcular
-           </Button>
            <Button variant="outline" size="sm" onClick={() => setShowLoadTemplate(true)}>
              <LayoutTemplate className="w-4 h-4 mr-1" /> Carregar Template
            </Button>
