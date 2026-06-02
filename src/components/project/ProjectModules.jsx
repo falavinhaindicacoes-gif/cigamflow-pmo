@@ -222,13 +222,16 @@ export default function ProjectModules({ projectId, project }) {
           )}
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={() => setShowLoadTemplate(true)}>
-            <LayoutTemplate className="w-4 h-4 mr-1" /> Carregar Template
-          </Button>
-          <Button size="sm" onClick={() => { setEditingModule(null); setShowModuleForm(true); }}>
-            <Plus className="w-4 h-4 mr-1" /> Módulo
-          </Button>
-        </div>
+           <Button variant="ghost" size="sm" onClick={() => updateProjectMetrics(projectId)} className="text-xs text-muted-foreground hover:text-foreground">
+             Recalcular
+           </Button>
+           <Button variant="outline" size="sm" onClick={() => setShowLoadTemplate(true)}>
+             <LayoutTemplate className="w-4 h-4 mr-1" /> Carregar Template
+           </Button>
+           <Button size="sm" onClick={() => { setEditingModule(null); setShowModuleForm(true); }}>
+             <Plus className="w-4 h-4 mr-1" /> Módulo
+           </Button>
+         </div>
       </div>
 
       {/* Module list */}

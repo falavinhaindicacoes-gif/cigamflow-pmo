@@ -17,8 +17,8 @@ export async function updateProjectMetrics(projectId) {
       .filter((item) => item.status === 'concluido')
       .reduce((sum, item) => sum + (item.horas_necessarias || 0), 0);
 
-    const percentualProgresso =
-      totalHoras > 0 ? Math.round((horasRealizadas / totalHoras) * 100) : 0;
+    // Percentual = (horas realizadas / horas previstas) * 100
+    const percentualProgresso = totalHoras > 0 ? Math.round((horasRealizadas / totalHoras) * 100) : 0;
 
     await base44.entities.Project.update(projectId, {
       horas_previstas: totalHoras,
