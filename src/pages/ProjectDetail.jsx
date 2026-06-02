@@ -158,7 +158,7 @@ export default function ProjectDetail() {
         </TabsContent>
 
         <TabsContent value="modulos">
-          <ProjectModules projectId={projectId} />
+          <ProjectModules projectId={projectId} project={project} />
         </TabsContent>
 
         <TabsContent value="auditoria">

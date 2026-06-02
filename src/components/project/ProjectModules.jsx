@@ -22,7 +22,7 @@ const STATUS_CONFIG = {
   cancelado: { label: 'Cancelado', color: 'bg-red-100 text-red-700', icon: XCircle },
 };
 
-export default function ProjectModules({ projectId }) {
+export default function ProjectModules({ projectId, project }) {
   const queryClient = useQueryClient();
   const [expandedModules, setExpandedModules] = useState({});
   const [showModuleForm, setShowModuleForm] = useState(false);
@@ -227,8 +227,8 @@ export default function ProjectModules({ projectId }) {
           </div>
           {validItems.length > 0 && (
             <div className="flex items-center gap-2">
-              <Progress value={projectProgress} className="w-24 h-1.5" />
-              <span className="text-xs text-muted-foreground">{projectProgress}% do projeto</span>
+              <Progress value={project?.percentual_progresso || 0} className="w-24 h-1.5" />
+              <span className="text-xs text-muted-foreground">{project?.percentual_progresso || 0}% do projeto</span>
             </div>
           )}
         </div>
