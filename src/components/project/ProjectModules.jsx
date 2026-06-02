@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { updateProjectMetrics } from '@/utils/projectMetrics';
+import { updateModuleStatusFromItems, revertModuleStatusIfNeeded } from '@/utils/statusAutomation';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { Plus, Pencil, Trash2, GripVertical, ChevronDown, ChevronRight, LayoutTemplate, CheckCircle2, Circle, AlertCircle, XCircle, Copy, MoreHorizontal } from 'lucide-react';
 import ModuleItemSubItems from './ModuleItemSubItems';
@@ -102,18 +103,34 @@ export default function ProjectModules({ projectId, project }) {
      },
    });
    const updateItem = useMutation({
-     mutationFn: ({ id, data }) => base44.entities.ModuleItem.update(id, data),
+     mutationFn: async ({ id, data }) => {
+       const item = await base44.entities.ModuleItem.filter({ id });
+       await base44.entities.ModuleItem.update(id, data);
+       // Automação: atualiza status do módulo pai se o status do item mudou
+       if (item[0]?.project_module_id) {
+         await updateModuleStatusFromItems(item[0].project_module_id, projectId);
+       }
+       await updateProjectMetrics(projectId);
+     },
      onSuccess: () => {
        queryClient.invalidateQueries({ queryKey: ['moduleItems', projectId] });
-       updateProjectMetrics(projectId);
+       queryClient.invalidateQueries({ queryKey: ['projectModules', projectId] });
        queryClient.invalidateQueries({ queryKey: ['projects', projectId] });
      },
    });
    const deleteItem = useMutation({
-     mutationFn: (id) => base44.entities.ModuleItem.delete(id),
+     mutationFn: async (id) => {
+       const item = await base44.entities.ModuleItem.filter({ id });
+       await base44.entities.ModuleItem.delete(id);
+       // Automação: reverte status do módulo se necessário
+       if (item[0]?.project_module_id) {
+         await revertModuleStatusIfNeeded(item[0].project_module_id);
+       }
+       await updateProjectMetrics(projectId);
+     },
      onSuccess: () => {
        queryClient.invalidateQueries({ queryKey: ['moduleItems', projectId] });
-       updateProjectMetrics(projectId);
+       queryClient.invalidateQueries({ queryKey: ['projectModules', projectId] });
        queryClient.invalidateQueries({ queryKey: ['projects', projectId] });
      },
    });
