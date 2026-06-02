@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Link } from 'react-router-dom';
@@ -27,11 +27,19 @@ export default function Projects() {
   const { data: projects = [], isLoading } = useQuery({
     queryKey: ['projects'],
     queryFn: () => base44.entities.Project.list('-created_date', 100),
+    refetchInterval: 2000,
   });
   const { data: clients = [] } = useQuery({
     queryKey: ['clients'],
     queryFn: () => base44.entities.Client.list('-created_date', 200),
   });
+
+  useEffect(() => {
+    const unsubscribe = base44.entities.Project.subscribe((event) => {
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
+    });
+    return unsubscribe;
+  }, [queryClient]);
 
   const getProgresso = (project) => {
     return project.percentual_progresso || 0;
