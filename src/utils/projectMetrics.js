@@ -2,11 +2,21 @@ import { base44 } from '@/api/base44Client';
 
 export async function updateProjectMetrics(projectId) {
   try {
-    const moduleItems = await base44.entities.ModuleItem.filter(
+    // Buscar módulos válidos do projeto
+    const projectModules = await base44.entities.ProjectModule.filter(
+      { project_id: projectId },
+      'ordem',
+      1000
+    );
+    const validModuleIds = new Set(projectModules.map(m => m.id));
+
+    // Buscar itens apenas dos módulos válidos
+    const allModuleItems = await base44.entities.ModuleItem.filter(
       { project_id: projectId },
       '-created_date',
       1000
     );
+    const moduleItems = allModuleItems.filter(item => validModuleIds.has(item.project_module_id));
 
     const totalHoras = moduleItems.reduce(
       (sum, item) => sum + (item.horas_necessarias || 0),
@@ -19,8 +29,6 @@ export async function updateProjectMetrics(projectId) {
 
     // Percentual = (horas realizadas / horas previstas) * 100
     const percentualProgresso = totalHoras > 0 ? Math.round((horasRealizadas / totalHoras) * 100) : 0;
-    
-    console.log('DEBUG updateProjectMetrics:', { totalHoras, horasRealizadas, percentualProgresso, itemsCount: moduleItems.length, completedCount: moduleItems.filter(i => i.status === 'concluido').length });
 
     await base44.entities.Project.update(projectId, {
       horas_previstas: totalHoras,
