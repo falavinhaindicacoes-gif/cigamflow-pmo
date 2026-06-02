@@ -160,10 +160,16 @@ export default function ProjectModules({ projectId }) {
     }
     queryClient.invalidateQueries({ queryKey: ['projectModules', projectId] });
     queryClient.invalidateQueries({ queryKey: ['moduleItems', projectId] });
+    await updateProjectMetrics(projectId);
     setShowLoadTemplate(false);
-  };
+    };
 
   const sortedModules = [...modules].sort((a, b) => a.ordem - b.ordem);
+
+  // Update project metrics on load or when items change
+  useEffect(() => {
+    updateProjectMetrics(projectId);
+  }, [projectId, items]);
 
   // Progress based on sub-items if available, otherwise on item status
   const getItemProgress = (itemId) => {
