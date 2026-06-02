@@ -65,15 +65,29 @@ export default function ProjectModules({ projectId, project }) {
   // Module mutations
   const createModule = useMutation({
     mutationFn: (d) => base44.entities.ProjectModule.create(d),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['projectModules', projectId] }); setShowModuleForm(false); setEditingModule(null); },
+    onSuccess: () => { 
+      queryClient.invalidateQueries({ queryKey: ['projectModules', projectId] }); 
+      updateProjectMetrics(projectId);
+      queryClient.invalidateQueries({ queryKey: ['projects', projectId] });
+      setShowModuleForm(false); 
+      setEditingModule(null); 
+    },
   });
   const updateModule = useMutation({
     mutationFn: ({ id, data }) => base44.entities.ProjectModule.update(id, data),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['projectModules', projectId] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['projectModules', projectId] });
+      updateProjectMetrics(projectId);
+      queryClient.invalidateQueries({ queryKey: ['projects', projectId] });
+    },
   });
   const deleteModule = useMutation({
     mutationFn: (id) => base44.entities.ProjectModule.delete(id),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['projectModules', projectId] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['projectModules', projectId] });
+      updateProjectMetrics(projectId);
+      queryClient.invalidateQueries({ queryKey: ['projects', projectId] });
+    },
   });
 
   // Item mutations
