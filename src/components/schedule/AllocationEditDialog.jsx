@@ -266,15 +266,15 @@ export default function AllocationEditDialog({ allocation, consultant, projects,
   const allocationDate = allocation.data ? new Date(allocation.data + 'T12:00:00') : new Date();
 
   // Salva a allocation lendo SEMPRE dos refs (nunca do closure do render)
+  // Nota: NÃO altera status automaticamente — apenas os campos que foram explicitamente atualizados
   const saveAllocation = async (extraData = {}) => {
     const pid = projectIdRef.current;
     const data = {
-      project_id: pid || undefined,
-      client_id: projects.find(p => p.id === pid)?.client_id || undefined,
+      ...(pid ? { project_id: pid } : {}),
+      ...(pid ? { client_id: projects.find(p => p.id === pid)?.client_id } : {}),
       tipo_agenda: tipoAgendaRef.current,
       status_faturamento: statusFaturamentoRef.current,
       observacoes: obsRef.current,
-      status: allocation.status,
       module_item_ids: moduleItemIdsRef.current,
       activity_ids: activityIdsRef.current,
       ...extraData,
@@ -325,6 +325,8 @@ export default function AllocationEditDialog({ allocation, consultant, projects,
         setSelectedFreeIds([]);
         queryClient.invalidateQueries({ queryKey: ['activities-avulsas', projectId] });
       }
+    } catch (err) {
+      console.error('[handleAllocar] error:', err.message);
     } finally {
       setIsPending(false);
     }
@@ -354,6 +356,8 @@ export default function AllocationEditDialog({ allocation, consultant, projects,
         setSelectedAllocatedIds([]);
         queryClient.invalidateQueries({ queryKey: ['activities-avulsas', projectId] });
       }
+    } catch (err) {
+      console.error('[handleDesalocar] error:', err.message);
     } finally {
       setIsPending(false);
     }
@@ -391,6 +395,8 @@ export default function AllocationEditDialog({ allocation, consultant, projects,
         setSelectedAllocatedIds([]);
         queryClient.invalidateQueries({ queryKey: ['activities-avulsas', projectId] });
       }
+    } catch (err) {
+      console.error('[handleConcluirAlocados] error:', err.message);
     } finally {
       setIsPending(false);
     }
@@ -408,6 +414,8 @@ export default function AllocationEditDialog({ allocation, consultant, projects,
       }
       await saveAllocation({ status: 'encerrada' });
       onClose();
+    } catch (err) {
+      console.error('[handleNotifConclusao] error:', err.message);
     } finally {
       setIsPending(false);
     }
@@ -432,6 +440,8 @@ export default function AllocationEditDialog({ allocation, consultant, projects,
       await base44.entities.Allocation.delete(allocation.id);
       queryClient.invalidateQueries({ queryKey: ['allocations-schedule'] });
       onClose();
+    } catch (err) {
+      console.error('[handleDelete] error:', err.message);
     } finally {
       setIsPending(false);
     }
