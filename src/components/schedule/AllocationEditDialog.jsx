@@ -137,8 +137,8 @@ function ProjectModulesSelector({ projectId, allocatedIds, selectedFreeIds, onTo
   );
 }
 
-/* ── Atividades avulsas em aberto ── */
-function AvulsaActivitiesSelector({ projectId, selectedIds, onToggle }) {
+/* ── Atividades avulsas — duas seções ── */
+function AvulsaActivitiesSelector({ projectId, allocatedIds, selectedFreeIds, onToggleFree, selectedAllocatedIds, onToggleAllocated }) {
   const { data: activities = [] } = useQuery({
     queryKey: ['activities-avulsas', projectId],
     queryFn: () =>
@@ -148,30 +148,54 @@ function AvulsaActivitiesSelector({ projectId, selectedIds, onToggle }) {
     enabled: true,
   });
 
-  const open = activities.filter(a => a.status !== 'concluido' && a.status !== 'cancelado');
-
-  if (open.length === 0) {
-    return (
-      <div className="text-xs text-muted-foreground text-center py-2 bg-muted/30 rounded-lg px-3">
-        Nenhuma atividade em aberto
-      </div>
-    );
-  }
+  const freeActivities = activities.filter(a =>
+    a.status !== 'concluido' && a.status !== 'cancelado' && !allocatedIds.includes(a.id)
+  );
+  const allocatedActivities = activities.filter(a => allocatedIds.includes(a.id));
 
   return (
-    <div className="border rounded-lg overflow-hidden">
-      <div className="flex items-center gap-2 px-3 py-2 bg-muted/40 border-b">
-        <ListChecks className="w-3.5 h-3.5 text-muted-foreground" />
-        <span className="text-xs font-medium text-muted-foreground">Atividades em aberto</span>
+    <div className="space-y-3">
+      {/* Disponíveis */}
+      <div className="border rounded-lg overflow-hidden">
+        <div className="flex items-center gap-2 px-3 py-2 bg-muted/40 border-b">
+          <ListChecks className="w-3.5 h-3.5 text-muted-foreground" />
+          <span className="text-xs font-medium text-muted-foreground">Disponíveis para alocar</span>
+        </div>
+        {freeActivities.length === 0 ? (
+          <div className="text-xs text-muted-foreground text-center py-3 px-3">Nenhuma atividade disponível</div>
+        ) : (
+          <div className="max-h-40 overflow-y-auto divide-y">
+            {freeActivities.map(a => (
+              <label key={a.id} className="flex items-start gap-2.5 px-3 py-1.5 hover:bg-muted/20 cursor-pointer">
+                <Checkbox checked={selectedFreeIds.includes(a.id)} onCheckedChange={() => onToggleFree(a.id)} className="mt-0.5" />
+                <span className="text-xs leading-tight">{a.titulo}</span>
+              </label>
+            ))}
+          </div>
+        )}
       </div>
-      <div className="max-h-48 overflow-y-auto divide-y">
-        {open.map(a => (
-          <label key={a.id} className="flex items-start gap-2.5 px-3 py-1.5 hover:bg-muted/20 cursor-pointer">
-            <Checkbox checked={selectedIds.includes(a.id)} onCheckedChange={() => onToggle(a.id)} className="mt-0.5" />
-            <span className="text-xs leading-tight">{a.titulo}</span>
-          </label>
-        ))}
-      </div>
+
+      {/* Já alocadas */}
+      {allocatedActivities.length > 0 && (
+        <div className="border border-orange-200 rounded-lg overflow-hidden">
+          <div className="flex items-center gap-2 px-3 py-2 bg-orange-50 border-b border-orange-200">
+            <ListChecks className="w-3.5 h-3.5 text-orange-500" />
+            <span className="text-xs font-medium text-orange-600">Alocadas nesta agenda</span>
+          </div>
+          <div className="max-h-40 overflow-y-auto divide-y">
+            {allocatedActivities.map(a => (
+              <label key={a.id} className="flex items-start gap-2.5 px-3 py-1.5 hover:bg-orange-50/40 cursor-pointer">
+                <Checkbox
+                  checked={selectedAllocatedIds.includes(a.id)}
+                  onCheckedChange={() => onToggleAllocated(a.id)}
+                  className="mt-0.5 border-orange-400 data-[state=checked]:bg-orange-500 data-[state=checked]:border-orange-500"
+                />
+                <span className="text-xs leading-tight text-orange-700">{a.titulo}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -186,16 +210,12 @@ export default function AllocationEditDialog({ allocation, consultant, projects,
   const [obs, setObs] = useState(allocation.observacoes || '');
   const [selectedFreeIds, setSelectedFreeIds] = useState([]);
   const [selectedAllocatedIds, setSelectedAllocatedIds] = useState([]);
-  const [selectedActivityIds, setSelectedActivityIds] = useState([]);
 
   const toggleFreeItem = (id) =>
     setSelectedFreeIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
 
   const toggleAllocatedItem = (id) =>
     setSelectedAllocatedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
-
-  const toggleActivity = (id) =>
-    setSelectedActivityIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
 
   const getClientLabel = (p) => {
     const c = clients.find(x => x.id === p.client_id);
@@ -225,65 +245,64 @@ export default function AllocationEditDialog({ allocation, consultant, projects,
   });
 
   const syncActivities = useMutation({
+    mutationFn: (ids) => Promise.all(ids.map(id => base44.entities.Activity.update(id, { status: 'em_andamento' }))),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['activities-avulsas', projectId] }),
+  });
+
+  const concludeActivities = useMutation({
     mutationFn: (ids) => Promise.all(ids.map(id => base44.entities.Activity.update(id, { status: 'concluido', data_conclusao: format(new Date(), 'yyyy-MM-dd') }))),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['activities-avulsas', projectId] }),
   });
 
+  const baseUpdate = () => ({
+    project_id: projectId || undefined,
+    client_id: projects.find(p => p.id === projectId)?.client_id || undefined,
+    tipo_agenda: tipoAgenda,
+    status_faturamento: statusFaturamento,
+    observacoes: obs,
+    status: allocation.status,
+  });
+
   const handleAllocar = async () => {
-    if (tipoAgenda === 'projeto_modulos' && selectedFreeIds.length > 0)
+    if (tipoAgenda === 'projeto_modulos' && selectedFreeIds.length > 0) {
       await allocateModuleItems.mutateAsync(selectedFreeIds);
-    if (tipoAgenda === 'atividades_avulsas' && selectedActivityIds.length > 0)
-      await syncActivities.mutateAsync(selectedActivityIds);
-    const newAllocated = [...(allocation.module_item_ids || []), ...selectedFreeIds];
-    updateMutation.mutate({
-      project_id: projectId || undefined,
-      client_id: projects.find(p => p.id === projectId)?.client_id || undefined,
-      tipo_agenda: tipoAgenda,
-      module_item_ids: tipoAgenda === 'projeto_modulos' ? newAllocated : [],
-      status_faturamento: statusFaturamento,
-      observacoes: obs,
-      status: allocation.status,
-    });
+      const newAllocated = [...(allocation.module_item_ids || []), ...selectedFreeIds];
+      updateMutation.mutate({ ...baseUpdate(), module_item_ids: newAllocated, activity_ids: allocation.activity_ids || [] });
+    } else if (tipoAgenda === 'atividades_avulsas' && selectedFreeIds.length > 0) {
+      await syncActivities.mutateAsync(selectedFreeIds);
+      const newAllocated = [...(allocation.activity_ids || []), ...selectedFreeIds];
+      updateMutation.mutate({ ...baseUpdate(), activity_ids: newAllocated, module_item_ids: allocation.module_item_ids || [] });
+    }
   };
 
   const handleDesalocar = async () => {
-    // Reverte status para nao_iniciado
-    await Promise.all(selectedAllocatedIds.map(id => base44.entities.ModuleItem.update(id, { status: 'nao_iniciado' })));
-    const remaining = (allocation.module_item_ids || []).filter(id => !selectedAllocatedIds.includes(id));
-    updateMutation.mutate({
-      project_id: projectId || undefined,
-      client_id: projects.find(p => p.id === projectId)?.client_id || undefined,
-      tipo_agenda: tipoAgenda,
-      module_item_ids: remaining,
-      status_faturamento: statusFaturamento,
-      observacoes: obs,
-      status: allocation.status,
-    });
+    if (tipoAgenda === 'projeto_modulos') {
+      await Promise.all(selectedAllocatedIds.map(id => base44.entities.ModuleItem.update(id, { status: 'nao_iniciado' })));
+      const remaining = (allocation.module_item_ids || []).filter(id => !selectedAllocatedIds.includes(id));
+      updateMutation.mutate({ ...baseUpdate(), module_item_ids: remaining, activity_ids: allocation.activity_ids || [] });
+    } else {
+      await Promise.all(selectedAllocatedIds.map(id => base44.entities.Activity.update(id, { status: 'aberto' })));
+      const remaining = (allocation.activity_ids || []).filter(id => !selectedAllocatedIds.includes(id));
+      updateMutation.mutate({ ...baseUpdate(), activity_ids: remaining, module_item_ids: allocation.module_item_ids || [] });
+    }
   };
 
   const handleConcluirAlocados = async () => {
-    // Marca como aguardando_confirmacao (notifica conclusão) e remove da agenda
-    await Promise.all(selectedAllocatedIds.map(id => base44.entities.ModuleItem.update(id, { status: 'aguardando_confirmacao' })));
-    const remaining = (allocation.module_item_ids || []).filter(id => !selectedAllocatedIds.includes(id));
-    updateMutation.mutate({
-      project_id: projectId || undefined,
-      client_id: projects.find(p => p.id === projectId)?.client_id || undefined,
-      tipo_agenda: tipoAgenda,
-      module_item_ids: remaining,
-      status_faturamento: statusFaturamento,
-      observacoes: obs,
-      status: allocation.status,
-    });
+    if (tipoAgenda === 'projeto_modulos') {
+      await Promise.all(selectedAllocatedIds.map(id => base44.entities.ModuleItem.update(id, { status: 'aguardando_confirmacao' })));
+      const remaining = (allocation.module_item_ids || []).filter(id => !selectedAllocatedIds.includes(id));
+      updateMutation.mutate({ ...baseUpdate(), module_item_ids: remaining, activity_ids: allocation.activity_ids || [] });
+    } else {
+      await concludeActivities.mutateAsync(selectedAllocatedIds);
+      const remaining = (allocation.activity_ids || []).filter(id => !selectedAllocatedIds.includes(id));
+      updateMutation.mutate({ ...baseUpdate(), activity_ids: remaining, module_item_ids: allocation.module_item_ids || [] });
+    }
   };
 
   const handleSave = async (encerrar = false) => {
     if (tipoAgenda === 'outros' && !obs.trim()) return;
-    if (encerrar) {
-      if (tipoAgenda === 'projeto_modulos' && selectedFreeIds.length > 0)
-        await syncModuleItems.mutateAsync(selectedFreeIds);
-      if (tipoAgenda === 'atividades_avulsas' && selectedActivityIds.length > 0)
-        await syncActivities.mutateAsync(selectedActivityIds);
-    }
+    if (encerrar && tipoAgenda === 'projeto_modulos' && selectedFreeIds.length > 0)
+      await syncModuleItems.mutateAsync(selectedFreeIds);
     const selectedProject = projects.find(p => p.id === projectId);
     updateMutation.mutate({
       project_id: projectId || undefined,
@@ -295,12 +314,12 @@ export default function AllocationEditDialog({ allocation, consultant, projects,
     });
   };
 
-  const hasFreeSelected = tipoAgenda === 'projeto_modulos' ? selectedFreeIds.length > 0 : selectedActivityIds.length > 0;
+  const hasFreeSelected = selectedFreeIds.length > 0;
   const hasAllocatedSelected = selectedAllocatedIds.length > 0;
 
-  const isPending = updateMutation.isPending || syncModuleItems.isPending || syncActivities.isPending || allocateModuleItems.isPending;
+  const isPending = updateMutation.isPending || syncModuleItems.isPending || syncActivities.isPending || allocateModuleItems.isPending || concludeActivities.isPending;
 
-  const freeCount = tipoAgenda === 'projeto_modulos' ? selectedFreeIds.length : selectedActivityIds.length;
+  const freeCount = selectedFreeIds.length;
 
   return (
     <Dialog open onOpenChange={onClose}>
@@ -318,7 +337,7 @@ export default function AllocationEditDialog({ allocation, consultant, projects,
           {/* Projeto */}
           <div className="space-y-1">
             <Label>Projeto / Cliente</Label>
-            <Select value={projectId} onValueChange={(v) => { setProjectId(v); setSelectedFreeIds([]); setSelectedAllocatedIds([]); setSelectedActivityIds([]); }}>
+            <Select value={projectId} onValueChange={(v) => { setProjectId(v); setSelectedFreeIds([]); setSelectedAllocatedIds([]); }}>
               <SelectTrigger><SelectValue placeholder="Selecione um projeto" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value={null}>— Sem projeto —</SelectItem>
@@ -332,7 +351,7 @@ export default function AllocationEditDialog({ allocation, consultant, projects,
           {/* Tipo de agenda */}
           <div className="space-y-1">
             <Label>Finalidade da Agenda</Label>
-            <Select value={tipoAgenda} onValueChange={(v) => { setTipoAgenda(v); setSelectedFreeIds([]); setSelectedAllocatedIds([]); setSelectedActivityIds([]); }}>
+            <Select value={tipoAgenda} onValueChange={(v) => { setTipoAgenda(v); setSelectedFreeIds([]); setSelectedAllocatedIds([]); }}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 {TIPO_AGENDA_OPTIONS.map(o => (
@@ -357,8 +376,11 @@ export default function AllocationEditDialog({ allocation, consultant, projects,
           {tipoAgenda === 'atividades_avulsas' && (
             <AvulsaActivitiesSelector
               projectId={projectId}
-              selectedIds={selectedActivityIds}
-              onToggle={toggleActivity}
+              allocatedIds={allocation.activity_ids || []}
+              selectedFreeIds={selectedFreeIds}
+              onToggleFree={toggleFreeItem}
+              selectedAllocatedIds={selectedAllocatedIds}
+              onToggleAllocated={toggleAllocatedItem}
             />
           )}
 

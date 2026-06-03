@@ -46,7 +46,15 @@
     },
     "activity_id": {
       "type": "string",
-      "description": "ID da Activity vinculada quando tipo_agenda = atividades_avulsas"
+      "description": "ID da Activity vinculada quando tipo_agenda = atividades_avulsas (legado)"
+    },
+    "activity_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "IDs das Activities alocadas para esta agenda",
+      "default": []
     },
     "module_item_ids": {
       "type": "array",
