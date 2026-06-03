@@ -40,9 +40,10 @@ function ProjectModulesSelector({ projectId, allocatedIds, excludeIds = [], sele
     enabled: !!projectId,
   });
 
-  // Livres: não alocado, não excluído desta sessão, e sem status final
+  // Livres: não alocado, não excluído desta sessão, e sem status definitivamente final
+  // aguardando_confirmacao NÃO bloqueia — só os excludeIds (concluídos nesta sessão) fazem isso
   const freeItems = items.filter(i =>
-    !['concluido', 'cancelado', 'aguardando_confirmacao'].includes(i.status) &&
+    !['concluido', 'cancelado'].includes(i.status) &&
     !allocatedIds.includes(i.id) &&
     !excludeIds.includes(i.id)
   );
@@ -86,7 +87,12 @@ function ProjectModulesSelector({ projectId, allocatedIds, excludeIds = [], sele
                       {modItems.map(item => (
                         <label key={item.id} className="flex items-start gap-2.5 px-5 py-1.5 hover:bg-muted/20 cursor-pointer">
                           <Checkbox checked={selectedFreeIds.includes(item.id)} onCheckedChange={() => onToggleFree(item.id)} className="mt-0.5" />
-                          <span className="text-xs leading-tight">{item.name}</span>
+                          <span className="text-xs leading-tight flex items-center gap-1.5">
+                            {item.name}
+                            {item.status === 'aguardando_confirmacao' && (
+                              <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 font-medium whitespace-nowrap">aguard. confirmação</span>
+                            )}
+                          </span>
                         </label>
                       ))}
                     </div>
