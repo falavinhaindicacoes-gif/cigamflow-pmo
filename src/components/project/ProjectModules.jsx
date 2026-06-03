@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { updateProjectMetrics } from '@/utils/projectMetrics';
-import { updateModuleStatusFromItems, revertModuleStatusIfNeeded } from '@/utils/statusAutomation';
+import { updateModuleStatusFromItems, revertModuleStatusIfNeeded, syncAllProjectModuleStatuses } from '@/utils/statusAutomation';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { Plus, Pencil, Trash2, GripVertical, ChevronDown, ChevronRight, LayoutTemplate, CheckCircle2, Circle, AlertCircle, XCircle, Copy, MoreHorizontal } from 'lucide-react';
 import ModuleItemSubItems from './ModuleItemSubItems';
@@ -68,6 +68,13 @@ export default function ProjectModules({ projectId, project }) {
     queryFn: () => base44.entities.ModuleSubItem.filter({ project_id: projectId }, 'ordem', 2000),
     staleTime: 15_000,
   });
+
+  // Sincroniza status de módulos quando dados carregam para corrigir inconsistências
+  useEffect(() => {
+    if (modules.length > 0 && items.length > 0) {
+      syncAllProjectModuleStatuses(projectId).catch(err => console.error('Erro ao sincronizar status:', err));
+    }
+  }, [projectId]);
 
   // Module mutations
   const createModule = useMutation({
