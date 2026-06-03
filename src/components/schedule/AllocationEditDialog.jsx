@@ -38,9 +38,9 @@ function ProjectModulesSelector({ projectId, allocatedIds, selectedFreeIds, onTo
     enabled: !!projectId,
   });
 
-  // Livres: não iniciado apenas (excluindo os alocados nesta agenda)
+  // Livres: qualquer status exceto concluído/cancelado e não alocado nesta agenda
   const freeItems = items.filter(i =>
-    i.status === 'nao_iniciado' && !allocatedIds.includes(i.id)
+    i.status !== 'concluido' && i.status !== 'cancelado' && !allocatedIds.includes(i.id)
   );
   // Alocados nesta agenda
   const allocatedItems = items.filter(i => allocatedIds.includes(i.id));
