@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { base44 } from '@/api/base44Client';
@@ -231,14 +231,14 @@ export default function AllocationEditDialog({ allocation, consultant, projects,
 
   const allocationDate = allocation.data ? new Date(allocation.data + 'T12:00:00') : new Date();
 
-  // flag para saber se deve fechar ao salvar (true = fechar, false = só atualizar cache)
-  const [closeOnSuccess, setCloseOnSuccess] = useState(true);
+  // ref para saber se deve fechar ao salvar (evita problema de closure com state)
+  const closeOnSuccessRef = useRef(true);
 
   const updateMutation = useMutation({
     mutationFn: (data) => base44.entities.Allocation.update(allocation.id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['allocations-schedule'] });
-      if (closeOnSuccess) onClose();
+      if (closeOnSuccessRef.current) onClose();
     },
   });
 
@@ -277,7 +277,7 @@ export default function AllocationEditDialog({ allocation, consultant, projects,
   });
 
   const handleAllocar = async () => {
-    setCloseOnSuccess(false);
+    closeOnSuccessRef.current = false;
     if (tipoAgenda === 'projeto_modulos' && selectedFreeIds.length > 0) {
       await allocateModuleItems.mutateAsync(selectedFreeIds);
       const newIds = [...localModuleItemIds, ...selectedFreeIds];
@@ -294,7 +294,7 @@ export default function AllocationEditDialog({ allocation, consultant, projects,
   };
 
   const handleDesalocar = async () => {
-    setCloseOnSuccess(false);
+    closeOnSuccessRef.current = false;
     if (tipoAgenda === 'projeto_modulos') {
       await Promise.all(selectedAllocatedIds.map(id => base44.entities.ModuleItem.update(id, { status: 'nao_iniciado' })));
       const remaining = localModuleItemIds.filter(id => !selectedAllocatedIds.includes(id));
@@ -311,7 +311,7 @@ export default function AllocationEditDialog({ allocation, consultant, projects,
   };
 
   const handleConcluirAlocados = async () => {
-    setCloseOnSuccess(false);
+    closeOnSuccessRef.current = false;
     if (tipoAgenda === 'projeto_modulos') {
       await Promise.all(selectedAllocatedIds.map(id => base44.entities.ModuleItem.update(id, { status: 'aguardando_confirmacao' })));
       const remaining = localModuleItemIds.filter(id => !selectedAllocatedIds.includes(id));
@@ -329,7 +329,7 @@ export default function AllocationEditDialog({ allocation, consultant, projects,
 
   const handleSave = async (encerrar = false) => {
     if (tipoAgenda === 'outros' && !obs.trim()) return;
-    setCloseOnSuccess(true);
+    closeOnSuccessRef.current = true;
     if (encerrar && tipoAgenda === 'projeto_modulos' && selectedFreeIds.length > 0)
       await syncModuleItems.mutateAsync(selectedFreeIds);
     const selectedProject = projects.find(p => p.id === projectId);
