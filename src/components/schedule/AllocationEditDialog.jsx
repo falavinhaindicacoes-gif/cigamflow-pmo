@@ -35,7 +35,7 @@ function ProjectModulesSelector({ projectId, selectedItems, onToggle }) {
     enabled: !!projectId,
   });
 
-  const pendingItems = items.filter(i => i.status !== 'concluido' && i.status !== 'cancelado');
+  const pendingItems = items.filter(i => i.status !== 'concluido' && i.status !== 'cancelado' && i.status !== 'aguardando_confirmacao');
   const modulesWithItems = modules.filter(m => pendingItems.some(i => i.project_module_id === m.id));
 
   if (!projectId) return null;
@@ -161,7 +161,7 @@ export default function AllocationEditDialog({ allocation, consultant, projects,
   });
 
   const syncModuleItems = useMutation({
-    mutationFn: (ids) => Promise.all(ids.map(id => base44.entities.ModuleItem.update(id, { status: 'concluido' }))),
+    mutationFn: (ids) => Promise.all(ids.map(id => base44.entities.ModuleItem.update(id, { status: 'aguardando_confirmacao' }))),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['moduleItems', projectId] }),
   });
 
@@ -285,7 +285,7 @@ export default function AllocationEditDialog({ allocation, consultant, projects,
         <DialogFooter className="flex-col gap-2 sm:flex-col">
           {hasSelected && (
             <Button className="w-full" onClick={() => handleSave(true)} disabled={isPending}>
-              {isPending ? 'Salvando...' : `Concluir e sincronizar (${selectedCount} item${selectedCount > 1 ? 's' : ''})`}
+              {isPending ? 'Salvando...' : `Notificar conclusão (${selectedCount} item${selectedCount > 1 ? 's' : ''})`}
             </Button>
           )}
           <div className="flex gap-2 w-full">
