@@ -1,4 +1,5 @@
 import { base44 } from '@/api/base44Client';
+import { syncAllProjectModuleStatuses } from './statusAutomation';
 
 export async function updateProjectMetrics(projectId, queryClient) {
   // Buscar módulos válidos do projeto e itens em paralelo
@@ -18,9 +19,13 @@ export async function updateProjectMetrics(projectId, queryClient) {
 
   const metrics = { horas_previstas: totalHoras, horas_realizadas: horasRealizadas, percentual_progresso: percentualProgresso };
 
+  // 1. Sincroniza todos os status de módulos para garantir consistência
+  await syncAllProjectModuleStatuses(projectId);
+
+  // 2. Atualiza as métricas do projeto
   await base44.entities.Project.update(projectId, metrics);
 
-  // Atualiza o cache imediatamente sem precisar de re-fetch
+  // 3. Atualiza o cache imediatamente sem precisar de re-fetch
   if (queryClient) {
     queryClient.setQueryData(['project', projectId], (old) => old ? { ...old, ...metrics } : undefined);
     queryClient.invalidateQueries({ queryKey: ['projects'] });

@@ -105,3 +105,14 @@ export const revertModuleStatusIfNeeded = async (moduleId) => {
     await base44.entities.ProjectModule.update(moduleId, { status: 'em_andamento' });
   }
 };
+
+/**
+ * Sincroniza todos os status de módulos de um projeto garantindo consistência
+ */
+export const syncAllProjectModuleStatuses = async (projectId) => {
+  const projectModules = await base44.entities.ProjectModule.filter({ project_id: projectId }, 'ordem', 1000);
+  
+  for (const module of projectModules) {
+    await updateModuleStatusFromItems(module.id, projectId);
+  }
+};
