@@ -252,11 +252,23 @@ export default function AllocationEditDialog({ allocation, consultant, projects,
     setExcludeIdsTick(t => t + 1);
   };
 
-  const toggleFreeItem = (id) =>
-    setSelectedFreeIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  const toggleFreeItem = (id) => {
+    console.log('[toggleFreeItem] id:', id, 'current:', selectedFreeIds);
+    setSelectedFreeIds(prev => {
+      const newVal = prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id];
+      console.log('[toggleFreeItem] new:', newVal);
+      return newVal;
+    });
+  };
 
-  const toggleAllocatedItem = (id) =>
-    setSelectedAllocatedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  const toggleAllocatedItem = (id) => {
+    console.log('[toggleAllocatedItem] id:', id, 'current:', selectedAllocatedIds);
+    setSelectedAllocatedIds(prev => {
+      const newVal = prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id];
+      console.log('[toggleAllocatedItem] new:', newVal);
+      return newVal;
+    });
+  };
 
   const getClientLabel = (p) => {
     const c = clients.find(x => x.id === p.client_id);
