@@ -86,13 +86,11 @@ export default function ProjectModules({ projectId, project }) {
   const deleteModule = useMutation({
     mutationFn: async (id) => {
       await base44.entities.ProjectModule.delete(id);
-      await updateProjectMetrics(projectId);
+      await updateProjectMetrics(projectId, queryClient);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['projectModules', projectId] });
       queryClient.invalidateQueries({ queryKey: ['moduleItems', projectId] });
-      queryClient.invalidateQueries({ queryKey: ['project', projectId] });
-      queryClient.invalidateQueries({ queryKey: ['projects'] });
     },
   });
 
@@ -100,48 +98,40 @@ export default function ProjectModules({ projectId, project }) {
    const createItem = useMutation({
      mutationFn: async (d) => {
        await base44.entities.ModuleItem.create(d);
-       await updateProjectMetrics(projectId);
+       await updateProjectMetrics(projectId, queryClient);
      },
      onSuccess: () => {
        queryClient.invalidateQueries({ queryKey: ['moduleItems', projectId] });
-       queryClient.invalidateQueries({ queryKey: ['project', projectId] });
-       queryClient.invalidateQueries({ queryKey: ['projects'] });
        setShowItemForm(false);
        setEditingItem(null);
      },
    });
    const updateItem = useMutation({
      mutationFn: async ({ id, data }) => {
-       const item = await base44.entities.ModuleItem.filter({ id });
+       const items = await base44.entities.ModuleItem.filter({ id });
        await base44.entities.ModuleItem.update(id, data);
-       // Automação: atualiza status do módulo pai se o status do item mudou
-       if (item[0]?.project_module_id) {
-         await updateModuleStatusFromItems(item[0].project_module_id, projectId);
+       if (items[0]?.project_module_id) {
+         await updateModuleStatusFromItems(items[0].project_module_id, projectId);
        }
-       await updateProjectMetrics(projectId);
+       await updateProjectMetrics(projectId, queryClient);
      },
      onSuccess: () => {
        queryClient.invalidateQueries({ queryKey: ['moduleItems', projectId] });
        queryClient.invalidateQueries({ queryKey: ['projectModules', projectId] });
-       queryClient.invalidateQueries({ queryKey: ['project', projectId] });
-       queryClient.invalidateQueries({ queryKey: ['projects'] });
      },
    });
    const deleteItem = useMutation({
      mutationFn: async (id) => {
-       const item = await base44.entities.ModuleItem.filter({ id });
+       const items = await base44.entities.ModuleItem.filter({ id });
        await base44.entities.ModuleItem.delete(id);
-       // Automação: reverte status do módulo se necessário
-       if (item[0]?.project_module_id) {
-         await revertModuleStatusIfNeeded(item[0].project_module_id);
+       if (items[0]?.project_module_id) {
+         await revertModuleStatusIfNeeded(items[0].project_module_id);
        }
-       await updateProjectMetrics(projectId);
+       await updateProjectMetrics(projectId, queryClient);
      },
      onSuccess: () => {
        queryClient.invalidateQueries({ queryKey: ['moduleItems', projectId] });
        queryClient.invalidateQueries({ queryKey: ['projectModules', projectId] });
-       queryClient.invalidateQueries({ queryKey: ['project', projectId] });
-       queryClient.invalidateQueries({ queryKey: ['projects'] });
      },
    });
 

@@ -33,34 +33,28 @@ export default function ModuleItemSubItems({ item, projectId }) {
   const updateSub = useMutation({
     mutationFn: async ({ id, data }) => {
       await base44.entities.ModuleSubItem.update(id, data);
-      // Automação: atualiza status do item pai e do módulo
       await updateItemStatusFromSubItems(item.id, projectId);
-      await updateProjectMetrics(projectId);
+      await updateProjectMetrics(projectId, queryClient);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['moduleSubItems', item.id] });
       queryClient.invalidateQueries({ queryKey: ['allModuleSubItems', projectId] });
       queryClient.invalidateQueries({ queryKey: ['moduleItems', projectId] });
       queryClient.invalidateQueries({ queryKey: ['projectModules', projectId] });
-      queryClient.invalidateQueries({ queryKey: ['project', projectId] });
-      queryClient.invalidateQueries({ queryKey: ['projects'] });
     },
   });
 
   const deleteSub = useMutation({
     mutationFn: async (id) => {
       await base44.entities.ModuleSubItem.delete(id);
-      // Automação: reverte status se necessário e atualiza métricas
       await revertItemStatusIfNeeded(item.id);
-      await updateProjectMetrics(projectId);
+      await updateProjectMetrics(projectId, queryClient);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['moduleSubItems', item.id] });
       queryClient.invalidateQueries({ queryKey: ['allModuleSubItems', projectId] });
       queryClient.invalidateQueries({ queryKey: ['moduleItems', projectId] });
       queryClient.invalidateQueries({ queryKey: ['projectModules', projectId] });
-      queryClient.invalidateQueries({ queryKey: ['project', projectId] });
-      queryClient.invalidateQueries({ queryKey: ['projects'] });
     },
   });
 
