@@ -56,9 +56,10 @@ export const updateModuleStatusFromItems = async (moduleId, projectId) => {
   let newStatus = module.status;
   if (allCompleted) {
     newStatus = 'concluido';
-  } else if ((anyCompleted || anyInProgress) && module.status === 'nao_iniciado') {
+  } else if ((anyCompleted || anyInProgress) && module.status !== 'em_andamento') {
     newStatus = 'em_andamento';
-  } else if (!anyCompleted && !anyInProgress && module.status === 'concluido') {
+  } else if (!allCompleted && module.status === 'concluido') {
+    // Se o módulo estava concluído mas nem todos os itens estão concluídos, reverte para em_andamento
     newStatus = 'em_andamento';
   }
 
