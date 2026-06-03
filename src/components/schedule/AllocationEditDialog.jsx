@@ -214,6 +214,10 @@ export default function AllocationEditDialog({ allocation, consultant, projects,
   const [selectedFreeIds, setSelectedFreeIds] = useState([]);
   const [selectedAllocatedIds, setSelectedAllocatedIds] = useState([]);
 
+  // Estado local dos IDs alocados (sincronizado com a prop mas atualizado localmente)
+  const [localModuleItemIds, setLocalModuleItemIds] = useState(allocation.module_item_ids || []);
+  const [localActivityIds, setLocalActivityIds] = useState(allocation.activity_ids || []);
+
   const toggleFreeItem = (id) =>
     setSelectedFreeIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
 
@@ -227,9 +231,15 @@ export default function AllocationEditDialog({ allocation, consultant, projects,
 
   const allocationDate = allocation.data ? new Date(allocation.data + 'T12:00:00') : new Date();
 
+  // flag para saber se deve fechar ao salvar (true = fechar, false = só atualizar cache)
+  const [closeOnSuccess, setCloseOnSuccess] = useState(true);
+
   const updateMutation = useMutation({
     mutationFn: (data) => base44.entities.Allocation.update(allocation.id, data),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['allocations-schedule'] }); onClose(); },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['allocations-schedule'] });
+      if (closeOnSuccess) onClose();
+    },
   });
 
   const deleteMutation = useMutation({
@@ -267,43 +277,59 @@ export default function AllocationEditDialog({ allocation, consultant, projects,
   });
 
   const handleAllocar = async () => {
+    setCloseOnSuccess(false);
     if (tipoAgenda === 'projeto_modulos' && selectedFreeIds.length > 0) {
       await allocateModuleItems.mutateAsync(selectedFreeIds);
-      const newAllocated = [...(allocation.module_item_ids || []), ...selectedFreeIds];
-      updateMutation.mutate({ ...baseUpdate(), module_item_ids: newAllocated, activity_ids: allocation.activity_ids || [] });
+      const newIds = [...localModuleItemIds, ...selectedFreeIds];
+      setLocalModuleItemIds(newIds);
+      setSelectedFreeIds([]);
+      updateMutation.mutate({ ...baseUpdate(), module_item_ids: newIds, activity_ids: localActivityIds });
     } else if (tipoAgenda === 'atividades_avulsas' && selectedFreeIds.length > 0) {
       await syncActivities.mutateAsync(selectedFreeIds);
-      const newAllocated = [...(allocation.activity_ids || []), ...selectedFreeIds];
-      updateMutation.mutate({ ...baseUpdate(), activity_ids: newAllocated, module_item_ids: allocation.module_item_ids || [] });
+      const newIds = [...localActivityIds, ...selectedFreeIds];
+      setLocalActivityIds(newIds);
+      setSelectedFreeIds([]);
+      updateMutation.mutate({ ...baseUpdate(), activity_ids: newIds, module_item_ids: localModuleItemIds });
     }
   };
 
   const handleDesalocar = async () => {
+    setCloseOnSuccess(false);
     if (tipoAgenda === 'projeto_modulos') {
       await Promise.all(selectedAllocatedIds.map(id => base44.entities.ModuleItem.update(id, { status: 'nao_iniciado' })));
-      const remaining = (allocation.module_item_ids || []).filter(id => !selectedAllocatedIds.includes(id));
-      updateMutation.mutate({ ...baseUpdate(), module_item_ids: remaining, activity_ids: allocation.activity_ids || [] });
+      const remaining = localModuleItemIds.filter(id => !selectedAllocatedIds.includes(id));
+      setLocalModuleItemIds(remaining);
+      setSelectedAllocatedIds([]);
+      updateMutation.mutate({ ...baseUpdate(), module_item_ids: remaining, activity_ids: localActivityIds });
     } else {
       await Promise.all(selectedAllocatedIds.map(id => base44.entities.Activity.update(id, { status: 'aberto' })));
-      const remaining = (allocation.activity_ids || []).filter(id => !selectedAllocatedIds.includes(id));
-      updateMutation.mutate({ ...baseUpdate(), activity_ids: remaining, module_item_ids: allocation.module_item_ids || [] });
+      const remaining = localActivityIds.filter(id => !selectedAllocatedIds.includes(id));
+      setLocalActivityIds(remaining);
+      setSelectedAllocatedIds([]);
+      updateMutation.mutate({ ...baseUpdate(), activity_ids: remaining, module_item_ids: localModuleItemIds });
     }
   };
 
   const handleConcluirAlocados = async () => {
+    setCloseOnSuccess(false);
     if (tipoAgenda === 'projeto_modulos') {
       await Promise.all(selectedAllocatedIds.map(id => base44.entities.ModuleItem.update(id, { status: 'aguardando_confirmacao' })));
-      const remaining = (allocation.module_item_ids || []).filter(id => !selectedAllocatedIds.includes(id));
-      updateMutation.mutate({ ...baseUpdate(), module_item_ids: remaining, activity_ids: allocation.activity_ids || [] });
+      const remaining = localModuleItemIds.filter(id => !selectedAllocatedIds.includes(id));
+      setLocalModuleItemIds(remaining);
+      setSelectedAllocatedIds([]);
+      updateMutation.mutate({ ...baseUpdate(), module_item_ids: remaining, activity_ids: localActivityIds });
     } else {
       await concludeActivities.mutateAsync(selectedAllocatedIds);
-      const remaining = (allocation.activity_ids || []).filter(id => !selectedAllocatedIds.includes(id));
-      updateMutation.mutate({ ...baseUpdate(), activity_ids: remaining, module_item_ids: allocation.module_item_ids || [] });
+      const remaining = localActivityIds.filter(id => !selectedAllocatedIds.includes(id));
+      setLocalActivityIds(remaining);
+      setSelectedAllocatedIds([]);
+      updateMutation.mutate({ ...baseUpdate(), activity_ids: remaining, module_item_ids: localModuleItemIds });
     }
   };
 
   const handleSave = async (encerrar = false) => {
     if (tipoAgenda === 'outros' && !obs.trim()) return;
+    setCloseOnSuccess(true);
     if (encerrar && tipoAgenda === 'projeto_modulos' && selectedFreeIds.length > 0)
       await syncModuleItems.mutateAsync(selectedFreeIds);
     const selectedProject = projects.find(p => p.id === projectId);
@@ -388,7 +414,7 @@ export default function AllocationEditDialog({ allocation, consultant, projects,
             {tipoAgenda === 'projeto_modulos' && projectId && (
               <ProjectModulesSelector
                 projectId={projectId}
-                allocatedIds={allocation.module_item_ids || []}
+                allocatedIds={localModuleItemIds}
                 selectedFreeIds={selectedFreeIds}
                 onToggleFree={toggleFreeItem}
                 selectedAllocatedIds={selectedAllocatedIds}
@@ -399,7 +425,7 @@ export default function AllocationEditDialog({ allocation, consultant, projects,
             {tipoAgenda === 'atividades_avulsas' && (
               <AvulsaActivitiesSelector
                 projectId={projectId}
-                allocatedIds={allocation.activity_ids || []}
+                allocatedIds={localActivityIds}
                 selectedFreeIds={selectedFreeIds}
                 onToggleFree={toggleFreeItem}
                 selectedAllocatedIds={selectedAllocatedIds}
