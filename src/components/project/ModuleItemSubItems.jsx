@@ -1,12 +1,21 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { Plus, Trash2, CheckSquare, Square, ChevronDown, ChevronRight } from 'lucide-react';
+import { Plus, Trash2, ChevronDown, ChevronRight, Circle, Clock, CheckCircle2, XCircle, Loader2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { updateItemStatusFromSubItems, revertItemStatusIfNeeded } from '@/utils/statusAutomation';
 import { updateProjectMetrics } from '@/utils/projectMetrics';
+
+const SUB_STATUS_CONFIG = {
+  nao_iniciado:          { label: 'Não Iniciado',          icon: Circle,        color: 'text-gray-400' },
+  em_andamento:          { label: 'Em Andamento',          icon: Loader2,       color: 'text-blue-500' },
+  aguardando_confirmacao:{ label: 'Aguard. Confirmação',   icon: Clock,         color: 'text-yellow-500' },
+  concluido:             { label: 'Concluído',             icon: CheckCircle2,  color: 'text-green-600' },
+  cancelado:             { label: 'Cancelado',             icon: XCircle,       color: 'text-red-500' },
+};
 
 export default function ModuleItemSubItems({ item, projectId }) {
   const queryClient = useQueryClient();
@@ -58,7 +67,7 @@ export default function ModuleItemSubItems({ item, projectId }) {
     },
   });
 
-  const concluded = subItems.filter(s => s.concluido).length;
+  const concluded = subItems.filter(s => s.status === 'concluido').length;
   const total = subItems.length;
   const progress = total > 0 ? Math.round((concluded / total) * 100) : 0;
 
@@ -69,14 +78,13 @@ export default function ModuleItemSubItems({ item, projectId }) {
       project_module_id: item.project_module_id,
       project_id: projectId,
       name: newName.trim(),
-      concluido: false,
+      status: 'nao_iniciado',
       ordem: subItems.length,
     });
   };
 
   return (
     <div className="mt-1">
-      {/* Toggle sub-items */}
       <button
         onClick={() => setExpanded(e => !e)}
         className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors ml-1"
@@ -97,28 +105,44 @@ export default function ModuleItemSubItems({ item, projectId }) {
 
       {expanded && (
         <div className="mt-2 ml-2 pl-3 border-l-2 border-border space-y-1">
-          {subItems.map(sub => (
-            <div key={sub.id} className="flex items-center gap-2 group py-0.5">
-              <button
-                onClick={() => updateSub.mutate({ id: sub.id, data: { concluido: !sub.concluido } })}
-                className="flex-shrink-0 text-muted-foreground hover:text-primary transition-colors"
-              >
-                {sub.concluido
-                  ? <CheckSquare className="w-3.5 h-3.5 text-green-600" />
-                  : <Square className="w-3.5 h-3.5" />
-                }
-              </button>
-              <span className={`text-xs flex-1 ${sub.concluido ? 'line-through text-muted-foreground' : ''}`}>
-                {sub.name}
-              </span>
-              <button
-                onClick={() => deleteSub.mutate(sub.id)}
-                className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-all"
-              >
-                <Trash2 className="w-3 h-3" />
-              </button>
-            </div>
-          ))}
+          {subItems.map(sub => {
+            const cfg = SUB_STATUS_CONFIG[sub.status] || SUB_STATUS_CONFIG.nao_iniciado;
+            const Icon = cfg.icon;
+            return (
+              <div key={sub.id} className="flex items-center gap-2 group py-0.5">
+                <Select
+                  value={sub.status || 'nao_iniciado'}
+                  onValueChange={(v) => updateSub.mutate({ id: sub.id, data: { status: v } })}
+                >
+                  <SelectTrigger className="h-5 w-5 border-0 bg-transparent p-0 flex-shrink-0">
+                    <Icon className={`w-3.5 h-3.5 flex-shrink-0 ${cfg.color}`} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(SUB_STATUS_CONFIG).map(([v, c]) => {
+                      const CIcon = c.icon;
+                      return (
+                        <SelectItem key={v} value={v}>
+                          <span className="flex items-center gap-2">
+                            <CIcon className={`w-3.5 h-3.5 ${c.color}`} />
+                            {c.label}
+                          </span>
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+                <span className={`text-xs flex-1 ${sub.status === 'concluido' ? 'line-through text-muted-foreground' : ''}`}>
+                  {sub.name}
+                </span>
+                <button
+                  onClick={() => deleteSub.mutate(sub.id)}
+                  className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-all"
+                >
+                  <Trash2 className="w-3 h-3" />
+                </button>
+              </div>
+            );
+          })}
 
           {showInput ? (
             <div className="flex items-center gap-1 pt-1">

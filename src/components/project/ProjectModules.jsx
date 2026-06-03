@@ -16,10 +16,11 @@ import { Progress } from '@/components/ui/progress';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
 const STATUS_CONFIG = {
-  nao_iniciado: { label: 'Não Iniciado', color: 'bg-gray-100 text-gray-600', icon: Circle },
-  em_andamento: { label: 'Em Andamento', color: 'bg-blue-100 text-blue-700', icon: AlertCircle },
-  concluido: { label: 'Concluído', color: 'bg-green-100 text-green-700', icon: CheckCircle2 },
-  cancelado: { label: 'Cancelado', color: 'bg-red-100 text-red-700', icon: XCircle },
+  nao_iniciado:           { label: 'Não Iniciado',         color: 'bg-gray-100 text-gray-600',   icon: Circle },
+  em_andamento:           { label: 'Em Andamento',         color: 'bg-blue-100 text-blue-700',   icon: AlertCircle },
+  aguardando_confirmacao: { label: 'Aguard. Confirmação',  color: 'bg-yellow-100 text-yellow-700', icon: AlertCircle },
+  concluido:              { label: 'Concluído',            color: 'bg-green-100 text-green-700', icon: CheckCircle2 },
+  cancelado:              { label: 'Cancelado',            color: 'bg-red-100 text-red-700',     icon: XCircle },
 };
 
 export default function ProjectModules({ projectId, project }) {

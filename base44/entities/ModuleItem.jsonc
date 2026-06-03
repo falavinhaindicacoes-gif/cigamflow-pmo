@@ -37,6 +37,7 @@
       "enum": [
         "nao_iniciado",
         "em_andamento",
+        "aguardando_confirmacao",
         "concluido",
         "cancelado"
       ],

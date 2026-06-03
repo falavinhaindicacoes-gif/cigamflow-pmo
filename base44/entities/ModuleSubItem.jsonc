@@ -19,10 +19,17 @@
       "type": "string",
       "description": "Nome do sub-item"
     },
-    "concluido": {
-      "type": "boolean",
-      "default": false,
-      "description": "Se o sub-item foi conclu\u00eddo"
+    "status": {
+      "type": "string",
+      "enum": [
+        "nao_iniciado",
+        "em_andamento",
+        "aguardando_confirmacao",
+        "concluido",
+        "cancelado"
+      ],
+      "default": "nao_iniciado",
+      "description": "Status do sub-item"
     },
     "ordem": {
       "type": "number",

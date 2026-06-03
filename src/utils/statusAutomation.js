@@ -15,15 +15,15 @@ export const updateItemStatusFromSubItems = async (itemId, projectId) => {
   if (!subItems.length || !itemArr[0]) return;
 
   const item = itemArr[0];
-  const allCompleted = subItems.every(s => s.concluido === true);
-  const anyCompleted = subItems.some(s => s.concluido === true);
+  const allCompleted = subItems.every(s => s.status === 'concluido');
+  const anyActive = subItems.some(s => s.status === 'em_andamento' || s.status === 'aguardando_confirmacao' || s.status === 'concluido');
 
   let newStatus = item.status;
   if (allCompleted) {
     newStatus = 'concluido';
-  } else if (anyCompleted && item.status === 'nao_iniciado') {
+  } else if (anyActive && item.status === 'nao_iniciado') {
     newStatus = 'em_andamento';
-  } else if (!anyCompleted && item.status === 'concluido') {
+  } else if (!allCompleted && item.status === 'concluido') {
     newStatus = 'em_andamento';
   }
 
@@ -79,7 +79,7 @@ export const revertItemStatusIfNeeded = async (itemId) => {
   if (!itemArr[0]) return;
   const item = itemArr[0];
 
-  if (item.status === 'concluido' && subItems.some(s => !s.concluido)) {
+  if (item.status === 'concluido' && subItems.some(s => s.status !== 'concluido')) {
     await base44.entities.ModuleItem.update(itemId, { status: 'em_andamento' });
     // Propagar para o módulo pai
     if (item.project_module_id) {
