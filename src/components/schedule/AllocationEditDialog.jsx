@@ -205,7 +205,6 @@ function AvulsaActivitiesSelector({ projectId, allocatedIds, selectedFreeIds, on
 export default function AllocationEditDialog({ allocation, consultant, projects, clients, onClose }) {
   const queryClient = useQueryClient();
 
-  const [activeTab, setActiveTab] = useState('config');
   const [projectId, setProjectId] = useState(allocation.project_id || '');
   const [tipoAgenda, setTipoAgenda] = useState(allocation.tipo_agenda || 'projeto_modulos');
   const [statusFaturamento, setStatusFaturamento] = useState(allocation.status_faturamento || 'a_confirmar');
@@ -405,43 +404,29 @@ export default function AllocationEditDialog({ allocation, consultant, projects,
                 onToggleAllocated={toggleAllocatedItem}
               />
             )}
+
+            {/* Observações — na coluna esquerda */}
+            <div className="space-y-1">
+              <Label>Observações {tipoAgenda === 'outros' && <span className="text-destructive">*</span>}</Label>
+              <Textarea
+                placeholder={tipoAgenda === 'outros' ? 'Descreva o motivo desta agenda...' : 'Ex: reunião kick-off, suporte remoto...'}
+                value={obs}
+                onChange={(e) => setObs(e.target.value)}
+                className={`h-24 resize-none text-sm ${tipoAgenda === 'outros' && !obs.trim() ? 'border-destructive' : ''}`}
+              />
+              {tipoAgenda === 'outros' && !obs.trim() && (
+                <p className="text-xs text-destructive">Obrigatório quando a finalidade é "Outro"</p>
+              )}
+            </div>
           </div>
 
-          {/* Coluna direita — abas Observações / Histórico */}
+          {/* Coluna direita — Histórico */}
           <div className="w-80 flex-shrink-0 flex flex-col border-l overflow-hidden">
-            {/* Sub-tabs */}
-            <div className="flex border-b px-4 bg-muted/20">
-              <button
-                onClick={() => setActiveTab('config')}
-                className={`px-3 py-2.5 text-xs font-medium border-b-2 mr-3 transition-colors ${activeTab === 'config' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
-              >
-                Observações
-              </button>
-              <button
-                onClick={() => setActiveTab('historico')}
-                className={`px-3 py-2.5 text-xs font-medium border-b-2 transition-colors ${activeTab === 'historico' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
-              >
-                Histórico
-              </button>
+            <div className="px-4 py-2.5 border-b bg-muted/20">
+              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Histórico</span>
             </div>
-
-            {/* Conteúdo da aba */}
             <div className="flex-1 overflow-y-auto px-4 py-4">
-              {activeTab === 'config' ? (
-                <div className="space-y-2">
-                  <Textarea
-                    placeholder={tipoAgenda === 'outros' ? 'Descreva o motivo desta agenda...' : 'Ex: reunião kick-off, suporte remoto...'}
-                    value={obs}
-                    onChange={(e) => setObs(e.target.value)}
-                    className={`h-36 resize-none text-sm ${tipoAgenda === 'outros' && !obs.trim() ? 'border-destructive' : ''}`}
-                  />
-                  {tipoAgenda === 'outros' && !obs.trim() && (
-                    <p className="text-xs text-destructive">Obrigatório quando a finalidade é "Outro"</p>
-                  )}
-                </div>
-              ) : (
-                <AllocationHistoryTab allocationId={allocation.id} />
-              )}
+              <AllocationHistoryTab allocationId={allocation.id} />
             </div>
           </div>
         </div>
