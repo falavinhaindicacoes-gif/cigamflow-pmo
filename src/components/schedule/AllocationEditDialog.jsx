@@ -261,6 +261,21 @@ export default function AllocationEditDialog({ allocation, consultant, projects,
     });
   };
 
+  const handleConcluirAlocados = async () => {
+    // Marca como aguardando_confirmacao (notifica conclusão) e remove da agenda
+    await Promise.all(selectedAllocatedIds.map(id => base44.entities.ModuleItem.update(id, { status: 'aguardando_confirmacao' })));
+    const remaining = (allocation.module_item_ids || []).filter(id => !selectedAllocatedIds.includes(id));
+    updateMutation.mutate({
+      project_id: projectId || undefined,
+      client_id: projects.find(p => p.id === projectId)?.client_id || undefined,
+      tipo_agenda: tipoAgenda,
+      module_item_ids: remaining,
+      status_faturamento: statusFaturamento,
+      observacoes: obs,
+      status: allocation.status,
+    });
+  };
+
   const handleSave = async (encerrar = false) => {
     if (tipoAgenda === 'outros' && !obs.trim()) return;
     if (encerrar) {
@@ -381,6 +396,11 @@ export default function AllocationEditDialog({ allocation, consultant, projects,
               {hasAllocatedSelected && (
                 <Button variant="outline" className="flex-1 border-orange-300 text-orange-600 hover:bg-orange-50" onClick={handleDesalocar} disabled={isPending}>
                   {isPending ? '...' : `Desalocar (${selectedAllocatedIds.length})`}
+                </Button>
+              )}
+              {hasAllocatedSelected && (
+                <Button className="flex-1 bg-green-600 hover:bg-green-700 text-white" onClick={handleConcluirAlocados} disabled={isPending}>
+                  {isPending ? '...' : `Concluir (${selectedAllocatedIds.length})`}
                 </Button>
               )}
               {hasFreeSelected && (
