@@ -36,7 +36,12 @@ function ProjectModulesSelector({ projectId, selectedItems, onToggle }) {
   });
 
   const pendingItems = items.filter(i => i.status !== 'concluido' && i.status !== 'cancelado' && i.status !== 'aguardando_confirmacao');
-  const modulesWithItems = modules.filter(m => pendingItems.some(i => i.project_module_id === m.id));
+  // também inclui itens já alocados (em_andamento) que estão salvos nesta agenda
+  const visibleItems = items.filter(i =>
+    (i.status !== 'concluido' && i.status !== 'cancelado' && i.status !== 'aguardando_confirmacao') ||
+    selectedItems.includes(i.id)
+  );
+  const modulesWithItems = modules.filter(m => visibleItems.some(i => i.project_module_id === m.id));
 
   if (!projectId) return null;
 
@@ -56,7 +61,7 @@ function ProjectModulesSelector({ projectId, selectedItems, onToggle }) {
       </div>
       <div className="max-h-48 overflow-y-auto divide-y">
         {modulesWithItems.map(mod => {
-          const modItems = pendingItems.filter(i => i.project_module_id === mod.id);
+          const modItems = visibleItems.filter(i => i.project_module_id === mod.id);
           const isExpanded = expandedModules[mod.id] !== false;
           return (
             <div key={mod.id}>
@@ -134,7 +139,7 @@ export default function AllocationEditDialog({ allocation, consultant, projects,
   const [tipoAgenda, setTipoAgenda] = useState(allocation.tipo_agenda || 'projeto_modulos');
   const [statusFaturamento, setStatusFaturamento] = useState(allocation.status_faturamento || 'a_confirmar');
   const [obs, setObs] = useState(allocation.observacoes || '');
-  const [selectedModuleItemIds, setSelectedModuleItemIds] = useState([]);
+  const [selectedModuleItemIds, setSelectedModuleItemIds] = useState(allocation.module_item_ids || []);
   const [selectedActivityIds, setSelectedActivityIds] = useState([]);
 
   const toggleModuleItem = (id) =>
@@ -184,6 +189,7 @@ export default function AllocationEditDialog({ allocation, consultant, projects,
       project_id: projectId || undefined,
       client_id: projects.find(p => p.id === projectId)?.client_id || undefined,
       tipo_agenda: tipoAgenda,
+      module_item_ids: tipoAgenda === 'projeto_modulos' ? selectedModuleItemIds : [],
       status_faturamento: statusFaturamento,
       observacoes: obs,
       status: allocation.status,
@@ -233,7 +239,7 @@ export default function AllocationEditDialog({ allocation, consultant, projects,
           {/* Projeto */}
           <div className="space-y-1">
             <Label>Projeto / Cliente</Label>
-            <Select value={projectId} onValueChange={(v) => { setProjectId(v); setSelectedModuleItemIds([]); setSelectedActivityIds([]); }}>
+            <Select value={projectId} onValueChange={(v) => { setProjectId(v); setSelectedModuleItemIds(v === allocation.project_id ? (allocation.module_item_ids || []) : []); setSelectedActivityIds([]); }}>
               <SelectTrigger><SelectValue placeholder="Selecione um projeto" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value={null}>— Sem projeto —</SelectItem>
@@ -247,7 +253,7 @@ export default function AllocationEditDialog({ allocation, consultant, projects,
           {/* Tipo de agenda */}
           <div className="space-y-1">
             <Label>Finalidade da Agenda</Label>
-            <Select value={tipoAgenda} onValueChange={(v) => { setTipoAgenda(v); setSelectedModuleItemIds([]); setSelectedActivityIds([]); }}>
+            <Select value={tipoAgenda} onValueChange={(v) => { setTipoAgenda(v); setSelectedModuleItemIds(v === 'projeto_modulos' ? (allocation.module_item_ids || []) : []); setSelectedActivityIds([]); }}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 {TIPO_AGENDA_OPTIONS.map(o => (

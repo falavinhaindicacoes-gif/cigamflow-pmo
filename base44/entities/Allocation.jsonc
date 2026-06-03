@@ -48,6 +48,14 @@
       "type": "string",
       "description": "ID da Activity vinculada quando tipo_agenda = atividades_avulsas"
     },
+    "module_item_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "IDs dos ModuleItems alocados para esta agenda",
+      "default": []
+    },
     "status_faturamento": {
       "type": "string",
       "enum": [
