@@ -424,15 +424,21 @@ export default function AllocationEditDialog({ allocation, consultant, projects,
     }
   };
 
-  // ── NOTIF. CONCLUSÃO: seleciona itens livres → notifica e fecha ──
-  // (itens da seção "disponíveis" que serão marcados como aguardando_confirmacao sem alocar)
+  // ── NOTIF. CONCLUSÃO: seleciona itens livres → conclui sem alocar ──
+  // (itens da seção "disponíveis" que serão marcados como concluído)
   const handleNotifConclusao = async () => {
     if (selectedFreeIds.length === 0) return;
     setIsPending(true);
     try {
       if (tipoAgenda === 'projeto_modulos') {
-        await Promise.all(selectedFreeIds.map(id => base44.entities.ModuleItem.update(id, { status: 'aguardando_confirmacao' })));
+        await Promise.all(selectedFreeIds.map(id => base44.entities.ModuleItem.update(id, { status: 'concluido' })));
         await syncProjectAfterModuleItemChange(selectedFreeIds);
+      } else if (tipoAgenda === 'atividades_avulsas') {
+        await Promise.all(selectedFreeIds.map(id => base44.entities.Activity.update(id, {
+          status: 'concluido',
+          data_conclusao: format(new Date(), 'yyyy-MM-dd'),
+        })));
+        queryClient.invalidateQueries({ queryKey: ['activities-avulsas', projectId] });
       }
       await saveAllocation({ status: 'encerrada' });
       onClose();
