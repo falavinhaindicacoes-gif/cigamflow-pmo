@@ -72,9 +72,15 @@ export default function ProjectModules({ projectId, project }) {
   // Sincroniza status de módulos quando dados carregam para corrigir inconsistências
   useEffect(() => {
     if (modules.length > 0 && items.length > 0) {
-      syncAllProjectModuleStatuses(projectId).catch(err => console.error('Erro ao sincronizar status:', err));
+      console.log('[ProjectModules] Sincronizando status de módulos...');
+      syncAllProjectModuleStatuses(projectId)
+        .then(() => {
+          console.log('[ProjectModules] Sincronização concluída');
+          queryClient.invalidateQueries({ queryKey: ['projectModules', projectId] });
+        })
+        .catch(err => console.error('[ProjectModules] Erro ao sincronizar status:', err));
     }
-  }, [projectId]);
+  }, [modules.length, items.length, projectId, queryClient]);
 
   // Module mutations
   const createModule = useMutation({
@@ -260,6 +266,12 @@ export default function ProjectModules({ projectId, project }) {
           )}
         </div>
         <div className="flex gap-2">
+           <Button variant="outline" size="sm" onClick={async () => {
+             await syncAllProjectModuleStatuses(projectId);
+             queryClient.invalidateQueries({ queryKey: ['projectModules', projectId] });
+           }}>
+             ⟳ Revisar Status
+           </Button>
            <Button variant="outline" size="sm" onClick={() => setShowLoadTemplate(true)}>
              <LayoutTemplate className="w-4 h-4 mr-1" /> Carregar Template
            </Button>
