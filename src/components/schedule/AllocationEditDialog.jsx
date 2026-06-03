@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
-import { ChevronDown, ChevronRight, Layers, ListChecks, Trash2, History, Settings } from 'lucide-react';
+import { ChevronDown, ChevronRight, Layers, ListChecks, Trash2 } from 'lucide-react';
 import AllocationHistoryTab from './AllocationHistoryTab';
 
 const TURNO_LABELS = { manha: 'Manhã', tarde: 'Tarde', noite: 'Noite' };
@@ -337,118 +337,113 @@ export default function AllocationEditDialog({ allocation, consultant, projects,
           </div>
         </div>
 
-        {/* Tabs */}
-        <div className="flex border-b px-6">
-          <button
-            onClick={() => setActiveTab('config')}
-            className={`flex items-center gap-1.5 px-1 py-2.5 text-sm font-medium border-b-2 mr-4 transition-colors ${activeTab === 'config' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
-          >
-            <Settings className="w-3.5 h-3.5" /> Configuração
-          </button>
-          <button
-            onClick={() => setActiveTab('historico')}
-            className={`flex items-center gap-1.5 px-1 py-2.5 text-sm font-medium border-b-2 transition-colors ${activeTab === 'historico' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
-          >
-            <History className="w-3.5 h-3.5" /> Histórico
-          </button>
-        </div>
 
-        {/* Body */}
-        <div className="flex gap-0 min-h-[420px] max-h-[60vh]">
-          {activeTab === 'config' ? (
-            <>
-              {/* Coluna esquerda: campos principais */}
-              <div className="flex-1 px-6 py-4 overflow-y-auto space-y-4 border-r">
-                {/* Projeto */}
-                <div className="space-y-1">
-                  <Label>Projeto / Cliente</Label>
-                  <Select value={projectId} onValueChange={(v) => { setProjectId(v); setSelectedFreeIds([]); setSelectedAllocatedIds([]); }}>
-                    <SelectTrigger><SelectValue placeholder="Selecione um projeto" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value={null}>— Sem projeto —</SelectItem>
-                      {projects.map(p => (
-                        <SelectItem key={p.id} value={p.id}>{getClientLabel(p)}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+        {/* Body: duas colunas fixas */}
+        <div className="flex min-h-[460px] max-h-[65vh] overflow-hidden">
 
-                {/* Tipo de agenda */}
-                <div className="space-y-1">
-                  <Label>Finalidade da Agenda</Label>
-                  <Select value={tipoAgenda} onValueChange={(v) => { setTipoAgenda(v); setSelectedFreeIds([]); setSelectedAllocatedIds([]); }}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {TIPO_AGENDA_OPTIONS.map(o => (
-                        <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+          {/* Coluna esquerda — campos da agenda */}
+          <div className="flex-1 px-6 py-4 overflow-y-auto space-y-4 border-r">
+            {/* Projeto */}
+            <div className="space-y-1">
+              <Label>Projeto / Cliente</Label>
+              <Select value={projectId} onValueChange={(v) => { setProjectId(v); setSelectedFreeIds([]); setSelectedAllocatedIds([]); }}>
+                <SelectTrigger><SelectValue placeholder="Selecione um projeto" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={null}>— Sem projeto —</SelectItem>
+                  {projects.map(p => (
+                    <SelectItem key={p.id} value={p.id}>{getClientLabel(p)}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-                {/* Seletor condicional */}
-                {tipoAgenda === 'projeto_modulos' && projectId && (
-                  <ProjectModulesSelector
-                    projectId={projectId}
-                    allocatedIds={allocation.module_item_ids || []}
-                    selectedFreeIds={selectedFreeIds}
-                    onToggleFree={toggleFreeItem}
-                    selectedAllocatedIds={selectedAllocatedIds}
-                    onToggleAllocated={toggleAllocatedItem}
-                  />
-                )}
+            {/* Tipo de agenda */}
+            <div className="space-y-1">
+              <Label>Finalidade da Agenda</Label>
+              <Select value={tipoAgenda} onValueChange={(v) => { setTipoAgenda(v); setSelectedFreeIds([]); setSelectedAllocatedIds([]); }}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {TIPO_AGENDA_OPTIONS.map(o => (
+                    <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-                {tipoAgenda === 'atividades_avulsas' && (
-                  <AvulsaActivitiesSelector
-                    projectId={projectId}
-                    allocatedIds={allocation.activity_ids || []}
-                    selectedFreeIds={selectedFreeIds}
-                    onToggleFree={toggleFreeItem}
-                    selectedAllocatedIds={selectedAllocatedIds}
-                    onToggleAllocated={toggleAllocatedItem}
-                  />
-                )}
+            {/* Status faturamento */}
+            <div className="space-y-1">
+              <Label>Status de Faturamento</Label>
+              <Select value={statusFaturamento} onValueChange={setStatusFaturamento}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="a_confirmar">A Confirmar</SelectItem>
+                  <SelectItem value="faturado">Faturado</SelectItem>
+                  <SelectItem value="nao_faturado">Não Faturado</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
-                {/* Status faturamento */}
-                <div className="space-y-1">
-                  <Label>Status de Faturamento</Label>
-                  <Select value={statusFaturamento} onValueChange={setStatusFaturamento}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="a_confirmar">A Confirmar</SelectItem>
-                      <SelectItem value="faturado">Faturado</SelectItem>
-                      <SelectItem value="nao_faturado">Não Faturado</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
+            {/* Seletor condicional */}
+            {tipoAgenda === 'projeto_modulos' && projectId && (
+              <ProjectModulesSelector
+                projectId={projectId}
+                allocatedIds={allocation.module_item_ids || []}
+                selectedFreeIds={selectedFreeIds}
+                onToggleFree={toggleFreeItem}
+                selectedAllocatedIds={selectedAllocatedIds}
+                onToggleAllocated={toggleAllocatedItem}
+              />
+            )}
 
-              {/* Coluna direita: observações */}
-              <div className="w-64 flex-shrink-0 px-5 py-4 overflow-y-auto space-y-3">
-                <div className="space-y-1">
-                  <Label>Observações {tipoAgenda === 'outros' && <span className="text-destructive">*</span>}</Label>
+            {tipoAgenda === 'atividades_avulsas' && (
+              <AvulsaActivitiesSelector
+                projectId={projectId}
+                allocatedIds={allocation.activity_ids || []}
+                selectedFreeIds={selectedFreeIds}
+                onToggleFree={toggleFreeItem}
+                selectedAllocatedIds={selectedAllocatedIds}
+                onToggleAllocated={toggleAllocatedItem}
+              />
+            )}
+          </div>
+
+          {/* Coluna direita — abas Observações / Histórico */}
+          <div className="w-80 flex-shrink-0 flex flex-col border-l overflow-hidden">
+            {/* Sub-tabs */}
+            <div className="flex border-b px-4 bg-muted/20">
+              <button
+                onClick={() => setActiveTab('config')}
+                className={`px-3 py-2.5 text-xs font-medium border-b-2 mr-3 transition-colors ${activeTab === 'config' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
+              >
+                Observações
+              </button>
+              <button
+                onClick={() => setActiveTab('historico')}
+                className={`px-3 py-2.5 text-xs font-medium border-b-2 transition-colors ${activeTab === 'historico' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
+              >
+                Histórico
+              </button>
+            </div>
+
+            {/* Conteúdo da aba */}
+            <div className="flex-1 overflow-y-auto px-4 py-4">
+              {activeTab === 'config' ? (
+                <div className="space-y-2">
                   <Textarea
                     placeholder={tipoAgenda === 'outros' ? 'Descreva o motivo desta agenda...' : 'Ex: reunião kick-off, suporte remoto...'}
                     value={obs}
                     onChange={(e) => setObs(e.target.value)}
-                    className={`h-32 resize-none ${tipoAgenda === 'outros' && !obs.trim() ? 'border-destructive' : ''}`}
+                    className={`h-36 resize-none text-sm ${tipoAgenda === 'outros' && !obs.trim() ? 'border-destructive' : ''}`}
                   />
                   {tipoAgenda === 'outros' && !obs.trim() && (
                     <p className="text-xs text-destructive">Obrigatório quando a finalidade é "Outro"</p>
                   )}
                 </div>
-
-                <div className="border-t pt-3">
-                  <p className="text-xs font-medium text-muted-foreground mb-2">Acompanhamentos</p>
-                  <AllocationHistoryTab allocationId={allocation.id} compact />
-                </div>
-              </div>
-            </>
-          ) : (
-            <div className="flex-1 px-6 py-4 overflow-y-auto">
-              <AllocationHistoryTab allocationId={allocation.id} />
+              ) : (
+                <AllocationHistoryTab allocationId={allocation.id} />
+              )}
             </div>
-          )}
+          </div>
         </div>
 
         {/* Footer */}
