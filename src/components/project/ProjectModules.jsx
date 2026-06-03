@@ -12,7 +12,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
@@ -36,40 +35,44 @@ export default function ProjectModules({ projectId, project }) {
   const { data: modules = [] } = useQuery({
     queryKey: ['projectModules', projectId],
     queryFn: () => base44.entities.ProjectModule.filter({ project_id: projectId }, 'ordem', 200),
+    staleTime: 15_000,
   });
 
   const { data: items = [] } = useQuery({
     queryKey: ['moduleItems', projectId],
     queryFn: () => base44.entities.ModuleItem.filter({ project_id: projectId }, 'ordem', 500),
+    staleTime: 15_000,
   });
 
   const { data: templates = [] } = useQuery({
     queryKey: ['moduleTemplates'],
     queryFn: () => base44.entities.ModuleTemplate.list('-created_date', 100),
+    staleTime: 120_000,
   });
 
   const { data: templateModules = [] } = useQuery({
     queryKey: ['allTemplateModules'],
     queryFn: () => base44.entities.TemplateModule.list('ordem', 500),
+    staleTime: 120_000,
   });
 
   const { data: templateItems = [] } = useQuery({
     queryKey: ['allTemplateModuleItems'],
     queryFn: () => base44.entities.TemplateModuleItem.list('ordem', 1000),
+    staleTime: 120_000,
   });
 
   const { data: allSubItems = [] } = useQuery({
     queryKey: ['allModuleSubItems', projectId],
     queryFn: () => base44.entities.ModuleSubItem.filter({ project_id: projectId }, 'ordem', 2000),
+    staleTime: 15_000,
   });
 
   // Module mutations
   const createModule = useMutation({
     mutationFn: (d) => base44.entities.ProjectModule.create(d),
     onSuccess: () => { 
-      queryClient.invalidateQueries({ queryKey: ['projectModules', projectId] }); 
-      updateProjectMetrics(projectId);
-      queryClient.invalidateQueries({ queryKey: ['projects', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['projectModules', projectId] });
       setShowModuleForm(false); 
       setEditingModule(null); 
     },
@@ -78,26 +81,31 @@ export default function ProjectModules({ projectId, project }) {
     mutationFn: ({ id, data }) => base44.entities.ProjectModule.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['projectModules', projectId] });
-      updateProjectMetrics(projectId);
-      queryClient.invalidateQueries({ queryKey: ['projects', projectId] });
     },
   });
   const deleteModule = useMutation({
-    mutationFn: (id) => base44.entities.ProjectModule.delete(id),
+    mutationFn: async (id) => {
+      await base44.entities.ProjectModule.delete(id);
+      await updateProjectMetrics(projectId);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['projectModules', projectId] });
-      updateProjectMetrics(projectId);
-      queryClient.invalidateQueries({ queryKey: ['projects', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['moduleItems', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['project', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
     },
   });
 
   // Item mutations
    const createItem = useMutation({
-     mutationFn: (d) => base44.entities.ModuleItem.create(d),
+     mutationFn: async (d) => {
+       await base44.entities.ModuleItem.create(d);
+       await updateProjectMetrics(projectId);
+     },
      onSuccess: () => {
        queryClient.invalidateQueries({ queryKey: ['moduleItems', projectId] });
-       updateProjectMetrics(projectId);
-       queryClient.invalidateQueries({ queryKey: ['projects', projectId] });
+       queryClient.invalidateQueries({ queryKey: ['project', projectId] });
+       queryClient.invalidateQueries({ queryKey: ['projects'] });
        setShowItemForm(false);
        setEditingItem(null);
      },
@@ -115,7 +123,8 @@ export default function ProjectModules({ projectId, project }) {
      onSuccess: () => {
        queryClient.invalidateQueries({ queryKey: ['moduleItems', projectId] });
        queryClient.invalidateQueries({ queryKey: ['projectModules', projectId] });
-       queryClient.invalidateQueries({ queryKey: ['projects', projectId] });
+       queryClient.invalidateQueries({ queryKey: ['project', projectId] });
+       queryClient.invalidateQueries({ queryKey: ['projects'] });
      },
    });
    const deleteItem = useMutation({
@@ -131,7 +140,8 @@ export default function ProjectModules({ projectId, project }) {
      onSuccess: () => {
        queryClient.invalidateQueries({ queryKey: ['moduleItems', projectId] });
        queryClient.invalidateQueries({ queryKey: ['projectModules', projectId] });
-       queryClient.invalidateQueries({ queryKey: ['projects', projectId] });
+       queryClient.invalidateQueries({ queryKey: ['project', projectId] });
+       queryClient.invalidateQueries({ queryKey: ['projects'] });
      },
    });
 
@@ -152,7 +162,6 @@ export default function ProjectModules({ projectId, project }) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['moduleItems', projectId] });
-      updateProjectMetrics(projectId);
     },
   });
 
@@ -200,10 +209,7 @@ export default function ProjectModules({ projectId, project }) {
 
   const sortedModules = [...modules].sort((a, b) => a.ordem - b.ordem);
 
-  // Update project metrics on load or when items change
-  useEffect(() => {
-    updateProjectMetrics(projectId);
-  }, [projectId, items]);
+  // Metrics are updated whenever items are created/updated/deleted via mutations
 
   // Progress based on sub-items if available, otherwise on item status
   const getItemProgress = (itemId) => {

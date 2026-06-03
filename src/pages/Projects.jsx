@@ -27,11 +27,12 @@ export default function Projects() {
   const { data: projects = [], isLoading } = useQuery({
     queryKey: ['projects'],
     queryFn: () => base44.entities.Project.list('-created_date', 100),
-    refetchInterval: 2000,
+    staleTime: 30_000,
   });
   const { data: clients = [] } = useQuery({
     queryKey: ['clients'],
     queryFn: () => base44.entities.Client.list('-created_date', 200),
+    staleTime: 60_000,
   });
 
   useEffect(() => {

@@ -17,6 +17,7 @@ export default function ModuleItemSubItems({ item, projectId }) {
   const { data: subItems = [] } = useQuery({
     queryKey: ['moduleSubItems', item.id],
     queryFn: () => base44.entities.ModuleSubItem.filter({ module_item_id: item.id }, 'ordem', 200),
+    staleTime: 15_000,
   });
 
   const createSub = useMutation({
@@ -41,7 +42,8 @@ export default function ModuleItemSubItems({ item, projectId }) {
       queryClient.invalidateQueries({ queryKey: ['allModuleSubItems', projectId] });
       queryClient.invalidateQueries({ queryKey: ['moduleItems', projectId] });
       queryClient.invalidateQueries({ queryKey: ['projectModules', projectId] });
-      queryClient.invalidateQueries({ queryKey: ['projects', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['project', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
     },
   });
 
@@ -57,7 +59,8 @@ export default function ModuleItemSubItems({ item, projectId }) {
       queryClient.invalidateQueries({ queryKey: ['allModuleSubItems', projectId] });
       queryClient.invalidateQueries({ queryKey: ['moduleItems', projectId] });
       queryClient.invalidateQueries({ queryKey: ['projectModules', projectId] });
-      queryClient.invalidateQueries({ queryKey: ['projects', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['project', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
     },
   });
 

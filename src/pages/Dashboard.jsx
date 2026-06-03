@@ -17,8 +17,8 @@ import { Button } from '@/components/ui/button';
 export default function Dashboard() {
   const [selectedProjectId, setSelectedProjectId] = useState('all');
 
-  const { data: projects = [] } = useQuery({ queryKey: ['projects'], queryFn: () => base44.entities.Project.list('-created_date', 100), staleTime: 0 });
-  const { data: clients = [] } = useQuery({ queryKey: ['clients'], queryFn: () => base44.entities.Client.list('-created_date', 100), staleTime: 0 });
+  const { data: projects = [] } = useQuery({ queryKey: ['projects'], queryFn: () => base44.entities.Project.list('-created_date', 100), staleTime: 30_000 });
+  const { data: clients = [] } = useQuery({ queryKey: ['clients'], queryFn: () => base44.entities.Client.list('-created_date', 100), staleTime: 60_000 });
 
   // Projects by status
   const allActiveProjects = projects.filter(p => p.status === 'em_andamento' || p.status === 'nao_iniciado');

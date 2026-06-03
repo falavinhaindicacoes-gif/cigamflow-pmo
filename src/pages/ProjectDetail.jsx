@@ -27,28 +27,35 @@ export default function ProjectDetail() {
 
   const { data: project, isLoading } = useQuery({
     queryKey: ['project', projectId],
-    queryFn: () => base44.entities.Project.list().then(ps => ps.find(p => p.id === projectId)),
+    queryFn: () => base44.entities.Project.filter({ id: projectId }, '-created_date', 1).then(ps => ps[0]),
     enabled: !!projectId,
+    staleTime: 30_000,
   });
 
   const { data: clients = [] } = useQuery({
     queryKey: ['clients'],
     queryFn: () => base44.entities.Client.list('-created_date', 200),
+    staleTime: 60_000,
   });
 
   const { data: consultants = [] } = useQuery({
     queryKey: ['consultants'],
     queryFn: () => base44.entities.Consultant.list('-created_date', 100),
+    staleTime: 60_000,
   });
 
   const { data: allProjects = [] } = useQuery({
     queryKey: ['projects'],
     queryFn: () => base44.entities.Project.list('-created_date', 100),
+    staleTime: 30_000,
   });
 
   const updateMutation = useMutation({
     mutationFn: (data) => base44.entities.Project.update(projectId, data),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['project', projectId] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['project', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
+    },
   });
 
   const createActivityMutation = useMutation({
