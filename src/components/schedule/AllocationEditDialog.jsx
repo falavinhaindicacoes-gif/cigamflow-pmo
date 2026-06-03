@@ -392,8 +392,8 @@ export default function AllocationEditDialog({ allocation, consultant, projects,
       if (tipoAgenda === 'projeto_modulos') {
         const idsToConclude = [...selectedAllocatedIds];
         const remaining = moduleItemIdsRef.current.filter(id => !idsToConclude.includes(id));
-        // 1. Marca como aguardando_confirmacao no backend
-        await Promise.all(idsToConclude.map(id => base44.entities.ModuleItem.update(id, { status: 'aguardando_confirmacao' })));
+        // 1. Marca como concluido no backend
+        await Promise.all(idsToConclude.map(id => base44.entities.ModuleItem.update(id, { status: 'concluido' })));
         // 2. Remove da lista de alocados na allocation
         const statusAfterRemoval = remaining.length > 0 ? 'ativa' : 'encerrada';
         await saveAllocation({ module_item_ids: remaining, status: statusAfterRemoval });
