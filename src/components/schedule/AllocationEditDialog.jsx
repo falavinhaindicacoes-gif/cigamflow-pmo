@@ -3,7 +3,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { base44 } from '@/api/base44Client';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -485,6 +485,7 @@ export default function AllocationEditDialog({ allocation, consultant, projects,
   return (
     <Dialog open onOpenChange={onClose}>
       <DialogContent className="max-w-5xl w-full p-0 overflow-hidden">
+        <div className="sr-only"><DialogHeader><DialogTitle>Editar Alocação</DialogTitle></DialogHeader></div>
         {/* Header */}
         <div className="flex items-start justify-between px-6 pt-5 pb-3 border-b">
           <div>

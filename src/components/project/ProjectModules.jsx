@@ -69,18 +69,15 @@ export default function ProjectModules({ projectId, project }) {
     staleTime: 15_000,
   });
 
-  // Sincroniza status de módulos quando dados carregam para corrigir inconsistências
+  // Sincroniza status de módulos apenas na primeira carga para corrigir inconsistências
   useEffect(() => {
     if (modules.length > 0 && items.length > 0) {
-      console.log('[ProjectModules] Sincronizando status de módulos...');
+      console.log('[ProjectModules] Sincronizando status de módulos na carga inicial...');
       syncAllProjectModuleStatuses(projectId)
-        .then(() => {
-          console.log('[ProjectModules] Sincronização concluída');
-          queryClient.invalidateQueries({ queryKey: ['projectModules', projectId] });
-        })
         .catch(err => console.error('[ProjectModules] Erro ao sincronizar status:', err));
     }
-  }, [modules.length, items.length, projectId, queryClient]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectId]);
 
   // Module mutations
   const createModule = useMutation({
