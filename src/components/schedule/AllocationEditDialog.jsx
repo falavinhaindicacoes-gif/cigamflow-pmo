@@ -219,11 +219,15 @@ export default function AllocationEditDialog({ allocation, consultant, projects,
   const [isPending, setIsPending] = useState(false);
 
   // ── REFS para evitar problemas de stale closure em handlers assíncronos ──
-  // Estes refs são sempre o valor mais atual, independente de re-renders
   const moduleItemIdsRef = useRef(allocation.module_item_ids || []);
   const activityIdsRef = useRef(allocation.activity_ids || []);
   const concludedIdsRef = useRef([]);
   const deallocatedIdsRef = useRef([]);
+  // Refs para os campos de formulário (evita closure stale no saveAllocation)
+  const projectIdRef = useRef(allocation.project_id || '');
+  const tipoAgendaRef = useRef(allocation.tipo_agenda || 'projeto_modulos');
+  const statusFaturamentoRef = useRef(allocation.status_faturamento || 'a_confirmar');
+  const obsRef = useRef(allocation.observacoes || '');
 
   // States derivados dos refs para forçar re-render quando necessário
   const [moduleItemIdsTick, setModuleItemIdsTick] = useState(0);
@@ -261,19 +265,21 @@ export default function AllocationEditDialog({ allocation, consultant, projects,
 
   const allocationDate = allocation.data ? new Date(allocation.data + 'T12:00:00') : new Date();
 
-  // Salva a allocation com os valores atuais dos refs (sem depender de closures de state)
+  // Salva a allocation lendo SEMPRE dos refs (nunca do closure do render)
   const saveAllocation = async (extraData = {}) => {
+    const pid = projectIdRef.current;
     const data = {
-      project_id: projectId || undefined,
-      client_id: projects.find(p => p.id === projectId)?.client_id || undefined,
-      tipo_agenda: tipoAgenda,
-      status_faturamento: statusFaturamento,
-      observacoes: obs,
+      project_id: pid || undefined,
+      client_id: projects.find(p => p.id === pid)?.client_id || undefined,
+      tipo_agenda: tipoAgendaRef.current,
+      status_faturamento: statusFaturamentoRef.current,
+      observacoes: obsRef.current,
       status: allocation.status,
       module_item_ids: moduleItemIdsRef.current,
       activity_ids: activityIdsRef.current,
       ...extraData,
     };
+    console.log('[saveAllocation] saving:', JSON.stringify(data));
     await base44.entities.Allocation.update(allocation.id, data);
     queryClient.invalidateQueries({ queryKey: ['allocations-schedule'] });
   };
@@ -294,6 +300,7 @@ export default function AllocationEditDialog({ allocation, consultant, projects,
 
   // ── ALOCAR: move itens de "disponível" para "alocados nesta agenda" ──
   const handleAllocar = async () => {
+    console.log('[handleAllocar] selectedFreeIds:', selectedFreeIds, 'tipoAgenda:', tipoAgendaRef.current);
     if (selectedFreeIds.length === 0) return;
     setIsPending(true);
     try {
@@ -354,6 +361,7 @@ export default function AllocationEditDialog({ allocation, consultant, projects,
 
   // ── CONCLUIR ALOCADOS: marca como "aguardando_confirmacao" e remove da agenda ──
   const handleConcluirAlocados = async () => {
+    console.log('[handleConcluirAlocados] selectedAllocatedIds:', selectedAllocatedIds, 'moduleItemIdsRef:', moduleItemIdsRef.current);
     if (selectedAllocatedIds.length === 0) return;
     setIsPending(true);
     try {
@@ -457,7 +465,7 @@ export default function AllocationEditDialog({ allocation, consultant, projects,
           <div className="flex-1 px-6 py-4 overflow-y-auto space-y-4 border-r">
             <div className="space-y-1">
               <Label>Projeto / Cliente</Label>
-              <Select value={projectId} onValueChange={(v) => { setProjectId(v); setSelectedFreeIds([]); setSelectedAllocatedIds([]); }}>
+              <Select value={projectId} onValueChange={(v) => { projectIdRef.current = v; setProjectId(v); setSelectedFreeIds([]); setSelectedAllocatedIds([]); }}>
                 <SelectTrigger><SelectValue placeholder="Selecione um projeto" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value={null}>— Sem projeto —</SelectItem>
@@ -470,7 +478,7 @@ export default function AllocationEditDialog({ allocation, consultant, projects,
 
             <div className="space-y-1">
               <Label>Finalidade da Agenda</Label>
-              <Select value={tipoAgenda} onValueChange={(v) => { setTipoAgenda(v); setSelectedFreeIds([]); setSelectedAllocatedIds([]); }}>
+              <Select value={tipoAgenda} onValueChange={(v) => { tipoAgendaRef.current = v; setTipoAgenda(v); setSelectedFreeIds([]); setSelectedAllocatedIds([]); }}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {TIPO_AGENDA_OPTIONS.map(o => (
@@ -482,7 +490,7 @@ export default function AllocationEditDialog({ allocation, consultant, projects,
 
             <div className="space-y-1">
               <Label>Status de Faturamento</Label>
-              <Select value={statusFaturamento} onValueChange={setStatusFaturamento}>
+              <Select value={statusFaturamento} onValueChange={(v) => { statusFaturamentoRef.current = v; setStatusFaturamento(v); }}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="a_confirmar">A Confirmar</SelectItem>
@@ -523,7 +531,7 @@ export default function AllocationEditDialog({ allocation, consultant, projects,
               <Textarea
                 placeholder={tipoAgenda === 'outros' ? 'Descreva o motivo desta agenda...' : 'Ex: reunião kick-off, suporte remoto...'}
                 value={obs}
-                onChange={(e) => setObs(e.target.value)}
+                onChange={(e) => { obsRef.current = e.target.value; setObs(e.target.value); }}
                 className={`h-24 resize-none text-sm ${tipoAgenda === 'outros' && !obs.trim() ? 'border-destructive' : ''}`}
               />
               {tipoAgenda === 'outros' && !obs.trim() && (
