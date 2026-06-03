@@ -9,7 +9,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
-import { ChevronDown, ChevronRight, Layers, ListChecks, Trash2 } from 'lucide-react';
+import { ChevronDown, ChevronRight, Layers, ListChecks, Trash2, History, Settings } from 'lucide-react';
+import AllocationHistoryTab from './AllocationHistoryTab';
 
 const TURNO_LABELS = { manha: 'Manhã', tarde: 'Tarde', noite: 'Noite' };
 
@@ -204,6 +205,7 @@ function AvulsaActivitiesSelector({ projectId, allocatedIds, selectedFreeIds, on
 export default function AllocationEditDialog({ allocation, consultant, projects, clients, onClose }) {
   const queryClient = useQueryClient();
 
+  const [activeTab, setActiveTab] = useState('config');
   const [projectId, setProjectId] = useState(allocation.project_id || '');
   const [tipoAgenda, setTipoAgenda] = useState(allocation.tipo_agenda || 'projeto_modulos');
   const [statusFaturamento, setStatusFaturamento] = useState(allocation.status_faturamento || 'a_confirmar');
@@ -323,96 +325,134 @@ export default function AllocationEditDialog({ allocation, consultant, projects,
 
   return (
     <Dialog open onOpenChange={onClose}>
-      <DialogContent className="max-w-sm">
-        <DialogHeader>
-          <DialogTitle>Editar Alocação</DialogTitle>
-        </DialogHeader>
-
-        <div className="space-y-1 text-sm text-muted-foreground">
-          <p><span className="font-medium text-foreground">{consultant?.name}</span></p>
-          <p>{format(allocationDate, "EEEE, dd/MM/yyyy", { locale: ptBR })} — {TURNO_LABELS[allocation.periodo_do_dia]}</p>
-        </div>
-
-        <div className="space-y-4 mt-2">
-          {/* Projeto */}
-          <div className="space-y-1">
-            <Label>Projeto / Cliente</Label>
-            <Select value={projectId} onValueChange={(v) => { setProjectId(v); setSelectedFreeIds([]); setSelectedAllocatedIds([]); }}>
-              <SelectTrigger><SelectValue placeholder="Selecione um projeto" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value={null}>— Sem projeto —</SelectItem>
-                {projects.map(p => (
-                  <SelectItem key={p.id} value={p.id}>{getClientLabel(p)}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Tipo de agenda */}
-          <div className="space-y-1">
-            <Label>Finalidade da Agenda</Label>
-            <Select value={tipoAgenda} onValueChange={(v) => { setTipoAgenda(v); setSelectedFreeIds([]); setSelectedAllocatedIds([]); }}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {TIPO_AGENDA_OPTIONS.map(o => (
-                  <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Seletor condicional */}
-          {tipoAgenda === 'projeto_modulos' && projectId && (
-            <ProjectModulesSelector
-              projectId={projectId}
-              allocatedIds={allocation.module_item_ids || []}
-              selectedFreeIds={selectedFreeIds}
-              onToggleFree={toggleFreeItem}
-              selectedAllocatedIds={selectedAllocatedIds}
-              onToggleAllocated={toggleAllocatedItem}
-            />
-          )}
-
-          {tipoAgenda === 'atividades_avulsas' && (
-            <AvulsaActivitiesSelector
-              projectId={projectId}
-              allocatedIds={allocation.activity_ids || []}
-              selectedFreeIds={selectedFreeIds}
-              onToggleFree={toggleFreeItem}
-              selectedAllocatedIds={selectedAllocatedIds}
-              onToggleAllocated={toggleAllocatedItem}
-            />
-          )}
-
-          {/* Status faturamento */}
-          <div className="space-y-1">
-            <Label>Status de Faturamento</Label>
-            <Select value={statusFaturamento} onValueChange={setStatusFaturamento}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="a_confirmar">A Confirmar</SelectItem>
-                <SelectItem value="faturado">Faturado</SelectItem>
-                <SelectItem value="nao_faturado">Não Faturado</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Observações */}
-          <div className="space-y-1">
-            <Label>Observações {tipoAgenda === 'outros' && <span className="text-destructive">*</span>}</Label>
-            <Textarea
-              placeholder={tipoAgenda === 'outros' ? 'Descreva o motivo desta agenda...' : 'Ex: reunião kick-off, suporte remoto...'}
-              value={obs}
-              onChange={(e) => setObs(e.target.value)}
-              className={`h-16 ${tipoAgenda === 'outros' && !obs.trim() ? 'border-destructive' : ''}`}
-            />
-            {tipoAgenda === 'outros' && !obs.trim() && (
-              <p className="text-xs text-destructive">Obrigatório quando a finalidade é "Outro"</p>
-            )}
+      <DialogContent className="max-w-3xl w-full p-0 overflow-hidden">
+        {/* Header */}
+        <div className="flex items-start justify-between px-6 pt-5 pb-3 border-b">
+          <div>
+            <h2 className="text-base font-semibold">Editar Alocação</h2>
+            <div className="space-y-0.5 text-sm text-muted-foreground mt-0.5">
+              <p><span className="font-medium text-foreground">{consultant?.name}</span></p>
+              <p>{format(allocationDate, "EEEE, dd/MM/yyyy", { locale: ptBR })} — {TURNO_LABELS[allocation.periodo_do_dia]}</p>
+            </div>
           </div>
         </div>
 
-        <DialogFooter className="flex-col gap-2 sm:flex-col">
+        {/* Tabs */}
+        <div className="flex border-b px-6">
+          <button
+            onClick={() => setActiveTab('config')}
+            className={`flex items-center gap-1.5 px-1 py-2.5 text-sm font-medium border-b-2 mr-4 transition-colors ${activeTab === 'config' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
+          >
+            <Settings className="w-3.5 h-3.5" /> Configuração
+          </button>
+          <button
+            onClick={() => setActiveTab('historico')}
+            className={`flex items-center gap-1.5 px-1 py-2.5 text-sm font-medium border-b-2 transition-colors ${activeTab === 'historico' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
+          >
+            <History className="w-3.5 h-3.5" /> Histórico
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="flex gap-0 min-h-[420px] max-h-[60vh]">
+          {activeTab === 'config' ? (
+            <>
+              {/* Coluna esquerda: campos principais */}
+              <div className="flex-1 px-6 py-4 overflow-y-auto space-y-4 border-r">
+                {/* Projeto */}
+                <div className="space-y-1">
+                  <Label>Projeto / Cliente</Label>
+                  <Select value={projectId} onValueChange={(v) => { setProjectId(v); setSelectedFreeIds([]); setSelectedAllocatedIds([]); }}>
+                    <SelectTrigger><SelectValue placeholder="Selecione um projeto" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={null}>— Sem projeto —</SelectItem>
+                      {projects.map(p => (
+                        <SelectItem key={p.id} value={p.id}>{getClientLabel(p)}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Tipo de agenda */}
+                <div className="space-y-1">
+                  <Label>Finalidade da Agenda</Label>
+                  <Select value={tipoAgenda} onValueChange={(v) => { setTipoAgenda(v); setSelectedFreeIds([]); setSelectedAllocatedIds([]); }}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {TIPO_AGENDA_OPTIONS.map(o => (
+                        <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Seletor condicional */}
+                {tipoAgenda === 'projeto_modulos' && projectId && (
+                  <ProjectModulesSelector
+                    projectId={projectId}
+                    allocatedIds={allocation.module_item_ids || []}
+                    selectedFreeIds={selectedFreeIds}
+                    onToggleFree={toggleFreeItem}
+                    selectedAllocatedIds={selectedAllocatedIds}
+                    onToggleAllocated={toggleAllocatedItem}
+                  />
+                )}
+
+                {tipoAgenda === 'atividades_avulsas' && (
+                  <AvulsaActivitiesSelector
+                    projectId={projectId}
+                    allocatedIds={allocation.activity_ids || []}
+                    selectedFreeIds={selectedFreeIds}
+                    onToggleFree={toggleFreeItem}
+                    selectedAllocatedIds={selectedAllocatedIds}
+                    onToggleAllocated={toggleAllocatedItem}
+                  />
+                )}
+
+                {/* Status faturamento */}
+                <div className="space-y-1">
+                  <Label>Status de Faturamento</Label>
+                  <Select value={statusFaturamento} onValueChange={setStatusFaturamento}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="a_confirmar">A Confirmar</SelectItem>
+                      <SelectItem value="faturado">Faturado</SelectItem>
+                      <SelectItem value="nao_faturado">Não Faturado</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* Coluna direita: observações */}
+              <div className="w-64 flex-shrink-0 px-5 py-4 overflow-y-auto space-y-3">
+                <div className="space-y-1">
+                  <Label>Observações {tipoAgenda === 'outros' && <span className="text-destructive">*</span>}</Label>
+                  <Textarea
+                    placeholder={tipoAgenda === 'outros' ? 'Descreva o motivo desta agenda...' : 'Ex: reunião kick-off, suporte remoto...'}
+                    value={obs}
+                    onChange={(e) => setObs(e.target.value)}
+                    className={`h-32 resize-none ${tipoAgenda === 'outros' && !obs.trim() ? 'border-destructive' : ''}`}
+                  />
+                  {tipoAgenda === 'outros' && !obs.trim() && (
+                    <p className="text-xs text-destructive">Obrigatório quando a finalidade é "Outro"</p>
+                  )}
+                </div>
+
+                <div className="border-t pt-3">
+                  <p className="text-xs font-medium text-muted-foreground mb-2">Acompanhamentos</p>
+                  <AllocationHistoryTab allocationId={allocation.id} compact />
+                </div>
+              </div>
+            </>
+          ) : (
+            <div className="flex-1 px-6 py-4 overflow-y-auto">
+              <AllocationHistoryTab allocationId={allocation.id} />
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="border-t px-6 py-3 flex flex-col gap-2">
           {(hasFreeSelected || hasAllocatedSelected) && (
             <div className="flex gap-2 w-full">
               {hasAllocatedSelected && (
@@ -448,7 +488,7 @@ export default function AllocationEditDialog({ allocation, consultant, projects,
               {isPending ? 'Salvando...' : 'Salvar'}
             </Button>
           </div>
-        </DialogFooter>
+        </div>
       </DialogContent>
     </Dialog>
   );

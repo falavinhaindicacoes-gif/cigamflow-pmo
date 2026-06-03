@@ -1,0 +1,39 @@
+{
+  "name": "AllocationHistory",
+  "type": "object",
+  "properties": {
+    "allocation_id": {
+      "type": "string",
+      "description": "ID da aloca\u00e7\u00e3o relacionada"
+    },
+    "tipo": {
+      "type": "string",
+      "enum": [
+        "acompanhamento",
+        "alocacao",
+        "desalocacao",
+        "conclusao",
+        "salvamento",
+        "encerramento"
+      ],
+      "default": "acompanhamento",
+      "description": "Tipo do registro hist\u00f3rico"
+    },
+    "descricao": {
+      "type": "string",
+      "description": "Descri\u00e7\u00e3o do evento registrado"
+    },
+    "autor": {
+      "type": "string",
+      "description": "Nome/email do autor do registro"
+    },
+    "observacoes": {
+      "type": "string",
+      "description": "Observa\u00e7\u00f5es adicionais do acompanhamento"
+    }
+  },
+  "required": [
+    "allocation_id",
+    "descricao"
+  ]
+}
