@@ -280,7 +280,13 @@ export default function AllocationEditDialog({ allocation, consultant, projects,
       ...extraData,
     };
     console.log('[saveAllocation] saving:', JSON.stringify(data));
-    await base44.entities.Allocation.update(allocation.id, data);
+    try {
+      const result = await base44.entities.Allocation.update(allocation.id, data);
+      console.log('[saveAllocation] SUCCESS, result:', result);
+    } catch (err) {
+      console.error('[saveAllocation] FAILED:', err?.message || err);
+      throw err;
+    }
     queryClient.invalidateQueries({ queryKey: ['allocations-schedule'] });
   };
 
