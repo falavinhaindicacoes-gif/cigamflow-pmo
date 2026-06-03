@@ -251,7 +251,8 @@ export default function AllocationEditDialog({ allocation, consultant, projects,
 
   const updateMutation = useMutation({
     mutationFn: (data) => base44.entities.Allocation.update(allocation.id, data),
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
+      // Sempre invalida para manter o cache consistente
       queryClient.invalidateQueries({ queryKey: ['allocations-schedule'] });
       if (closeOnSuccessRef.current) onClose();
     },
@@ -264,36 +265,33 @@ export default function AllocationEditDialog({ allocation, consultant, projects,
 
   const syncModuleItems = useMutation({
     mutationFn: (ids) => Promise.all(ids.map(id => base44.entities.ModuleItem.update(id, { status: 'aguardando_confirmacao' }))),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['moduleItems', projectId] }),
   });
 
   const allocateModuleItems = useMutation({
     mutationFn: (ids) => Promise.all(ids.map(id => base44.entities.ModuleItem.update(id, { status: 'em_andamento' }))),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['moduleItems', projectId] }),
   });
 
   const syncActivities = useMutation({
     mutationFn: (ids) => Promise.all(ids.map(id => base44.entities.Activity.update(id, { status: 'em_andamento' }))),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['activities-avulsas', projectId] }),
   });
 
   const concludeActivities = useMutation({
     mutationFn: (ids) => Promise.all(ids.map(id => base44.entities.Activity.update(id, { status: 'concluido', data_conclusao: format(new Date(), 'yyyy-MM-dd') }))),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['activities-avulsas', projectId] }),
   });
 
   const syncProjectAfterModuleItemChange = async (affectedIds) => {
     if (!projectId || !affectedIds.length) return;
-    // Usa o cache existente para obter os project_module_ids dos itens afetados
-    const cachedItems = queryClient.getQueryData(['moduleItems', projectId]) || [];
+    // Busca diretamente do servidor para garantir dados frescos (não depende do cache)
+    const freshItems = await base44.entities.ModuleItem.filter({ project_id: projectId });
     const affectedModuleIds = [...new Set(
-      cachedItems.filter(i => affectedIds.includes(i.id)).map(i => i.project_module_id).filter(Boolean)
+      freshItems.filter(i => affectedIds.includes(i.id)).map(i => i.project_module_id).filter(Boolean)
     )];
     if (affectedModuleIds.length > 0) {
       await Promise.all(affectedModuleIds.map(mid => updateModuleStatusFromItems(mid, projectId)));
     }
     await updateProjectMetrics(projectId, queryClient);
-    queryClient.invalidateQueries({ queryKey: ['moduleItems', projectId] });
+    // Atualiza o cache com os dados frescos que já temos
+    queryClient.setQueryData(['moduleItems', projectId], freshItems);
     queryClient.invalidateQueries({ queryKey: ['projectModules', projectId] });
   };
 
@@ -312,10 +310,14 @@ export default function AllocationEditDialog({ allocation, consultant, projects,
     if (tipoAgenda === 'projeto_modulos' && selectedFreeIds.length > 0) {
       const idsToAllocate = [...selectedFreeIds];
       const newModuleIds = [...localModuleItemIds, ...idsToAllocate];
+      // 1. Atualiza status dos itens
       await allocateModuleItems.mutateAsync(idsToAllocate);
+      // 2. Salva os IDs na allocation
       await updateMutation.mutateAsync(buildUpdate({ module_item_ids: newModuleIds, activity_ids: localActivityIds }));
+      // 3. Atualiza estado local
       setLocalModuleItemIds(newModuleIds);
       setSelectedFreeIds([]);
+      // 4. Sincroniza métricas do projeto (busca dados frescos)
       await syncProjectAfterModuleItemChange(idsToAllocate);
     } else if (tipoAgenda === 'atividades_avulsas' && selectedFreeIds.length > 0) {
       const idsToAllocate = [...selectedFreeIds];
@@ -324,6 +326,7 @@ export default function AllocationEditDialog({ allocation, consultant, projects,
       await updateMutation.mutateAsync(buildUpdate({ activity_ids: newActivityIds, module_item_ids: localModuleItemIds }));
       setLocalActivityIds(newActivityIds);
       setSelectedFreeIds([]);
+      queryClient.invalidateQueries({ queryKey: ['activities-avulsas', projectId] });
     }
   };
 
@@ -332,11 +335,15 @@ export default function AllocationEditDialog({ allocation, consultant, projects,
     if (tipoAgenda === 'projeto_modulos') {
       const idsToDeallocate = [...selectedAllocatedIds];
       const remaining = localModuleItemIds.filter(id => !idsToDeallocate.includes(id));
+      // 1. Reverte status dos itens
       await Promise.all(idsToDeallocate.map(id => base44.entities.ModuleItem.update(id, { status: 'nao_iniciado' })));
+      // 2. Salva os IDs restantes na allocation
       await updateMutation.mutateAsync(buildUpdate({ module_item_ids: remaining, activity_ids: localActivityIds }));
+      // 3. Atualiza estado local
       setLocalModuleItemIds(remaining);
       setDeallocatedIds(prev => [...prev, ...idsToDeallocate]);
       setSelectedAllocatedIds([]);
+      // 4. Sincroniza métricas
       await syncProjectAfterModuleItemChange(idsToDeallocate);
     } else {
       const idsToDeallocate = [...selectedAllocatedIds];
@@ -346,6 +353,7 @@ export default function AllocationEditDialog({ allocation, consultant, projects,
       setLocalActivityIds(remaining);
       setDeallocatedIds(prev => [...prev, ...idsToDeallocate]);
       setSelectedAllocatedIds([]);
+      queryClient.invalidateQueries({ queryKey: ['activities-avulsas', projectId] });
     }
   };
 
@@ -354,11 +362,15 @@ export default function AllocationEditDialog({ allocation, consultant, projects,
     if (tipoAgenda === 'projeto_modulos') {
       const idsToConclude = [...selectedAllocatedIds];
       const remaining = localModuleItemIds.filter(id => !idsToConclude.includes(id));
+      // 1. Marca itens como aguardando_confirmacao
       await Promise.all(idsToConclude.map(id => base44.entities.ModuleItem.update(id, { status: 'aguardando_confirmacao' })));
+      // 2. Remove itens concluídos da allocation (não ficam mais em module_item_ids)
       await updateMutation.mutateAsync(buildUpdate({ module_item_ids: remaining, activity_ids: localActivityIds }));
+      // 3. Atualiza estado local
       setLocalModuleItemIds(remaining);
       setConcludedIds(prev => [...prev, ...idsToConclude]);
       setSelectedAllocatedIds([]);
+      // 4. Sincroniza módulos e métricas do projeto
       await syncProjectAfterModuleItemChange(idsToConclude);
     } else {
       const idsToConclude = [...selectedAllocatedIds];
@@ -368,6 +380,7 @@ export default function AllocationEditDialog({ allocation, consultant, projects,
       setLocalActivityIds(remaining);
       setConcludedIds(prev => [...prev, ...idsToConclude]);
       setSelectedAllocatedIds([]);
+      queryClient.invalidateQueries({ queryKey: ['activities-avulsas', projectId] });
     }
   };
 
