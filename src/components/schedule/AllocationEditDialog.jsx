@@ -12,6 +12,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { ChevronDown, ChevronRight, Layers, ListChecks, Trash2 } from 'lucide-react';
 import AllocationHistoryTab from './AllocationHistoryTab';
 import AllocationLogsTab from './AllocationLogsTab';
+import { updateProjectMetrics } from '@/utils/projectMetrics';
+import { updateModuleStatusFromItems } from '@/utils/statusAutomation';
 
 const TURNO_LABELS = { manha: 'Manhã', tarde: 'Tarde', noite: 'Noite' };
 
@@ -279,6 +281,19 @@ export default function AllocationEditDialog({ allocation, consultant, projects,
     status: allocation.status,
   });
 
+  const syncProjectAfterModuleItemChange = async (affectedIds) => {
+    if (!projectId || !affectedIds.length) return;
+    // Busca os module_item_ids para obter os project_module_ids únicos
+    const itemsData = await base44.entities.ModuleItem.filter({ project_id: projectId });
+    const affectedModuleIds = [...new Set(
+      itemsData.filter(i => affectedIds.includes(i.id)).map(i => i.project_module_id).filter(Boolean)
+    )];
+    await Promise.all(affectedModuleIds.map(mid => updateModuleStatusFromItems(mid, projectId)));
+    await updateProjectMetrics(projectId, queryClient);
+    queryClient.invalidateQueries({ queryKey: ['moduleItems', projectId] });
+    queryClient.invalidateQueries({ queryKey: ['projectModules', projectId] });
+  };
+
   const handleAllocar = async () => {
     closeOnSuccessRef.current = false;
     if (tipoAgenda === 'projeto_modulos' && selectedFreeIds.length > 0) {
@@ -287,6 +302,7 @@ export default function AllocationEditDialog({ allocation, consultant, projects,
       setLocalModuleItemIds(newIds);
       setSelectedFreeIds([]);
       updateMutation.mutate({ ...baseUpdate(), module_item_ids: newIds, activity_ids: localActivityIds });
+      await syncProjectAfterModuleItemChange(selectedFreeIds);
     } else if (tipoAgenda === 'atividades_avulsas' && selectedFreeIds.length > 0) {
       await syncActivities.mutateAsync(selectedFreeIds);
       const newIds = [...localActivityIds, ...selectedFreeIds];
@@ -305,6 +321,7 @@ export default function AllocationEditDialog({ allocation, consultant, projects,
       setDeallocatedIds(prev => [...prev, ...selectedAllocatedIds]);
       setSelectedAllocatedIds([]);
       updateMutation.mutate({ ...baseUpdate(), module_item_ids: remaining, activity_ids: localActivityIds });
+      await syncProjectAfterModuleItemChange(selectedAllocatedIds);
     } else {
       await Promise.all(selectedAllocatedIds.map(id => base44.entities.Activity.update(id, { status: 'aberto' })));
       const remaining = localActivityIds.filter(id => !selectedAllocatedIds.includes(id));
@@ -324,6 +341,7 @@ export default function AllocationEditDialog({ allocation, consultant, projects,
       setConcludedIds(prev => [...prev, ...selectedAllocatedIds]);
       setSelectedAllocatedIds([]);
       updateMutation.mutate({ ...baseUpdate(), module_item_ids: remaining, activity_ids: localActivityIds });
+      await syncProjectAfterModuleItemChange(selectedAllocatedIds);
     } else {
       await concludeActivities.mutateAsync(selectedAllocatedIds);
       const remaining = localActivityIds.filter(id => !selectedAllocatedIds.includes(id));
