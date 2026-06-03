@@ -165,10 +165,30 @@ export default function AllocationEditDialog({ allocation, consultant, projects,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['moduleItems', projectId] }),
   });
 
+  const allocateModuleItems = useMutation({
+    mutationFn: (ids) => Promise.all(ids.map(id => base44.entities.ModuleItem.update(id, { status: 'em_andamento' }))),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['moduleItems', projectId] }),
+  });
+
   const syncActivities = useMutation({
     mutationFn: (ids) => Promise.all(ids.map(id => base44.entities.Activity.update(id, { status: 'concluido', data_conclusao: format(new Date(), 'yyyy-MM-dd') }))),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['activities-avulsas', projectId] }),
   });
+
+  const handleAllocar = async () => {
+    if (tipoAgenda === 'projeto_modulos' && selectedModuleItemIds.length > 0)
+      await allocateModuleItems.mutateAsync(selectedModuleItemIds);
+    if (tipoAgenda === 'atividades_avulsas' && selectedActivityIds.length > 0)
+      await syncActivities.mutateAsync(selectedActivityIds);
+    updateMutation.mutate({
+      project_id: projectId || undefined,
+      client_id: projects.find(p => p.id === projectId)?.client_id || undefined,
+      tipo_agenda: tipoAgenda,
+      status_faturamento: statusFaturamento,
+      observacoes: obs,
+      status: allocation.status,
+    });
+  };
 
   const handleSave = async (encerrar = false) => {
     if (tipoAgenda === 'outros' && !obs.trim()) return;
@@ -193,7 +213,7 @@ export default function AllocationEditDialog({ allocation, consultant, projects,
     (tipoAgenda === 'projeto_modulos' && selectedModuleItemIds.length > 0) ||
     (tipoAgenda === 'atividades_avulsas' && selectedActivityIds.length > 0);
 
-  const isPending = updateMutation.isPending || syncModuleItems.isPending || syncActivities.isPending;
+  const isPending = updateMutation.isPending || syncModuleItems.isPending || syncActivities.isPending || allocateModuleItems.isPending;
 
   const selectedCount = tipoAgenda === 'projeto_modulos' ? selectedModuleItemIds.length : selectedActivityIds.length;
 
@@ -284,9 +304,14 @@ export default function AllocationEditDialog({ allocation, consultant, projects,
 
         <DialogFooter className="flex-col gap-2 sm:flex-col">
           {hasSelected && (
-            <Button className="w-full" onClick={() => handleSave(true)} disabled={isPending}>
-              {isPending ? 'Salvando...' : `Notificar conclusão (${selectedCount} item${selectedCount > 1 ? 's' : ''})`}
-            </Button>
+            <div className="flex gap-2 w-full">
+              <Button variant="outline" className="flex-1" onClick={() => handleAllocar()} disabled={isPending}>
+                {isPending ? '...' : `Alocar (${selectedCount})`}
+              </Button>
+              <Button className="flex-1" onClick={() => handleSave(true)} disabled={isPending}>
+                {isPending ? 'Salvando...' : `Notificar conclusão (${selectedCount})`}
+              </Button>
+            </div>
           )}
           <div className="flex gap-2 w-full">
             <Button variant="outline" size="icon" className="text-destructive hover:text-destructive"
