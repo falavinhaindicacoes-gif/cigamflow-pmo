@@ -49,21 +49,14 @@ export const updateModuleStatusFromItems = async (moduleId, projectId) => {
   if (!items.length || !moduleArr[0]) return;
 
   const module = moduleArr[0];
-  const allCompleted = items.every(i => i.status === 'concluido');
-  const anyCompleted = items.some(i => i.status === 'concluido');
-  const anyInProgress = items.some(i => i.status === 'em_andamento');
+  const completedCount = items.filter(i => i.status === 'concluido').length;
+  const allCompleted = completedCount === items.length;
 
-  let newStatus = module.status;
-  if (allCompleted) {
-    newStatus = 'concluido';
-  } else if ((anyCompleted || anyInProgress) && module.status !== 'em_andamento') {
-    newStatus = 'em_andamento';
-  } else if (!allCompleted && module.status === 'concluido') {
-    // Se o módulo estava concluído mas nem todos os itens estão concluídos, reverte para em_andamento
-    newStatus = 'em_andamento';
-  }
+  // Lógica clara: módulo é "concluído" APENAS se TODOS os itens estão "concluido"
+  const newStatus = allCompleted ? 'concluido' : 'em_andamento';
 
   if (newStatus !== module.status) {
+    console.log(`[updateModuleStatusFromItems] módulo ${moduleId}: ${completedCount}/${items.length} itens concluídos → ${newStatus}`);
     await base44.entities.ProjectModule.update(moduleId, { status: newStatus });
   }
 };
