@@ -219,7 +219,7 @@ export default function ProjectModules({ projectId, project }) {
   const getItemProgress = (itemId) => {
     const subs = allSubItems.filter(s => s.module_item_id === itemId);
     if (!subs.length) return null; // no sub-items
-    const done = subs.filter(s => s.concluido).length;
+    const done = subs.filter(s => s.status === 'concluido').length;
     return { done, total: subs.length, pct: Math.round((done / subs.length) * 100) };
   };
 
