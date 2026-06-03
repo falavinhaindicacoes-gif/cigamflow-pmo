@@ -316,7 +316,7 @@ export default function AllocationEditDialog({ allocation, consultant, projects,
         // 1. Atualiza status dos itens no backend
         await Promise.all(idsToAllocate.map(id => base44.entities.ModuleItem.update(id, { status: 'em_andamento' })));
         // 2. Salva os IDs atualizados na allocation
-        await saveAllocation({ module_item_ids: newIds });
+        await saveAllocation({ module_item_ids: newIds, status: 'ativa' });
         // 3. Atualiza o ref e força re-render
         setModuleItemIds(newIds);
         setSelectedFreeIds([]);
@@ -326,7 +326,7 @@ export default function AllocationEditDialog({ allocation, consultant, projects,
         const idsToAllocate = [...selectedFreeIds];
         const newIds = [...activityIdsRef.current, ...idsToAllocate];
         await Promise.all(idsToAllocate.map(id => base44.entities.Activity.update(id, { status: 'em_andamento' })));
-        await saveAllocation({ activity_ids: newIds });
+        await saveAllocation({ activity_ids: newIds, status: 'ativa' });
         setActivityIds(newIds);
         setSelectedFreeIds([]);
         queryClient.invalidateQueries({ queryKey: ['activities-avulsas', projectId] });
@@ -347,7 +347,8 @@ export default function AllocationEditDialog({ allocation, consultant, projects,
         const idsToDeallocate = [...selectedAllocatedIds];
         const remaining = moduleItemIdsRef.current.filter(id => !idsToDeallocate.includes(id));
         await Promise.all(idsToDeallocate.map(id => base44.entities.ModuleItem.update(id, { status: 'nao_iniciado' })));
-        await saveAllocation({ module_item_ids: remaining });
+        const statusAfterRemoval = remaining.length > 0 ? 'ativa' : 'encerrada';
+        await saveAllocation({ module_item_ids: remaining, status: statusAfterRemoval });
         setModuleItemIds(remaining);
         addDeallocatedIds(idsToDeallocate);
         setSelectedAllocatedIds([]);
@@ -356,7 +357,8 @@ export default function AllocationEditDialog({ allocation, consultant, projects,
         const idsToDeallocate = [...selectedAllocatedIds];
         const remaining = activityIdsRef.current.filter(id => !idsToDeallocate.includes(id));
         await Promise.all(idsToDeallocate.map(id => base44.entities.Activity.update(id, { status: 'aberto' })));
-        await saveAllocation({ activity_ids: remaining });
+        const statusAfterRemoval = remaining.length > 0 ? 'ativa' : 'encerrada';
+        await saveAllocation({ activity_ids: remaining, status: statusAfterRemoval });
         setActivityIds(remaining);
         addDeallocatedIds(idsToDeallocate);
         setSelectedAllocatedIds([]);
@@ -381,7 +383,8 @@ export default function AllocationEditDialog({ allocation, consultant, projects,
         // 1. Marca como aguardando_confirmacao no backend
         await Promise.all(idsToConclude.map(id => base44.entities.ModuleItem.update(id, { status: 'aguardando_confirmacao' })));
         // 2. Remove da lista de alocados na allocation
-        await saveAllocation({ module_item_ids: remaining });
+        const statusAfterRemoval = remaining.length > 0 ? 'ativa' : 'encerrada';
+        await saveAllocation({ module_item_ids: remaining, status: statusAfterRemoval });
         // 3. Atualiza refs e UI
         setModuleItemIds(remaining);
         addConcludedIds(idsToConclude);
@@ -395,7 +398,8 @@ export default function AllocationEditDialog({ allocation, consultant, projects,
           status: 'concluido',
           data_conclusao: format(new Date(), 'yyyy-MM-dd'),
         })));
-        await saveAllocation({ activity_ids: remaining });
+        const statusAfterRemoval = remaining.length > 0 ? 'ativa' : 'encerrada';
+        await saveAllocation({ activity_ids: remaining, status: statusAfterRemoval });
         setActivityIds(remaining);
         addConcludedIds(idsToConclude);
         setSelectedAllocatedIds([]);
