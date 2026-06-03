@@ -22,7 +22,7 @@ const TIPO_AGENDA_OPTIONS = [
 ];
 
 /* ── Módulos/itens do projeto — duas seções ── */
-function ProjectModulesSelector({ projectId, allocatedIds, selectedFreeIds, onToggleFree, selectedAllocatedIds, onToggleAllocated }) {
+function ProjectModulesSelector({ projectId, allocatedIds, excludeIds = [], selectedFreeIds, onToggleFree, selectedAllocatedIds, onToggleAllocated }) {
   const [expandedFree, setExpandedFree] = useState({});
   const [expandedAllocated, setExpandedAllocated] = useState({});
 
@@ -38,9 +38,9 @@ function ProjectModulesSelector({ projectId, allocatedIds, selectedFreeIds, onTo
     enabled: !!projectId,
   });
 
-  // Livres: qualquer status exceto concluído/cancelado e não alocado nesta agenda
+  // Livres: qualquer status exceto concluído/cancelado, não alocado e não excluído desta sessão
   const freeItems = items.filter(i =>
-    i.status !== 'concluido' && i.status !== 'cancelado' && !allocatedIds.includes(i.id)
+    i.status !== 'concluido' && i.status !== 'cancelado' && !allocatedIds.includes(i.id) && !excludeIds.includes(i.id)
   );
   // Alocados nesta agenda
   const allocatedItems = items.filter(i => allocatedIds.includes(i.id));
@@ -140,7 +140,7 @@ function ProjectModulesSelector({ projectId, allocatedIds, selectedFreeIds, onTo
 }
 
 /* ── Atividades avulsas — duas seções ── */
-function AvulsaActivitiesSelector({ projectId, allocatedIds, selectedFreeIds, onToggleFree, selectedAllocatedIds, onToggleAllocated }) {
+function AvulsaActivitiesSelector({ projectId, allocatedIds, excludeIds = [], selectedFreeIds, onToggleFree, selectedAllocatedIds, onToggleAllocated }) {
   const { data: activities = [] } = useQuery({
     queryKey: ['activities-avulsas', projectId],
     queryFn: () =>
@@ -151,7 +151,7 @@ function AvulsaActivitiesSelector({ projectId, allocatedIds, selectedFreeIds, on
   });
 
   const freeActivities = activities.filter(a =>
-    a.status !== 'concluido' && a.status !== 'cancelado' && !allocatedIds.includes(a.id)
+    a.status !== 'concluido' && a.status !== 'cancelado' && !allocatedIds.includes(a.id) && !excludeIds.includes(a.id)
   );
   const allocatedActivities = activities.filter(a => allocatedIds.includes(a.id));
 
@@ -217,6 +217,9 @@ export default function AllocationEditDialog({ allocation, consultant, projects,
   // Estado local dos IDs alocados (sincronizado com a prop mas atualizado localmente)
   const [localModuleItemIds, setLocalModuleItemIds] = useState(allocation.module_item_ids || []);
   const [localActivityIds, setLocalActivityIds] = useState(allocation.activity_ids || []);
+  // IDs concluídos/desalocados nesta sessão — excluídos das listas de disponíveis
+  const [concludedIds, setConcludedIds] = useState([]);
+  const [deallocatedIds, setDeallocatedIds] = useState([]);
 
   const toggleFreeItem = (id) =>
     setSelectedFreeIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
@@ -299,12 +302,14 @@ export default function AllocationEditDialog({ allocation, consultant, projects,
       await Promise.all(selectedAllocatedIds.map(id => base44.entities.ModuleItem.update(id, { status: 'nao_iniciado' })));
       const remaining = localModuleItemIds.filter(id => !selectedAllocatedIds.includes(id));
       setLocalModuleItemIds(remaining);
+      setDeallocatedIds(prev => [...prev, ...selectedAllocatedIds]);
       setSelectedAllocatedIds([]);
       updateMutation.mutate({ ...baseUpdate(), module_item_ids: remaining, activity_ids: localActivityIds });
     } else {
       await Promise.all(selectedAllocatedIds.map(id => base44.entities.Activity.update(id, { status: 'aberto' })));
       const remaining = localActivityIds.filter(id => !selectedAllocatedIds.includes(id));
       setLocalActivityIds(remaining);
+      setDeallocatedIds(prev => [...prev, ...selectedAllocatedIds]);
       setSelectedAllocatedIds([]);
       updateMutation.mutate({ ...baseUpdate(), activity_ids: remaining, module_item_ids: localModuleItemIds });
     }
@@ -316,12 +321,14 @@ export default function AllocationEditDialog({ allocation, consultant, projects,
       await Promise.all(selectedAllocatedIds.map(id => base44.entities.ModuleItem.update(id, { status: 'aguardando_confirmacao' })));
       const remaining = localModuleItemIds.filter(id => !selectedAllocatedIds.includes(id));
       setLocalModuleItemIds(remaining);
+      setConcludedIds(prev => [...prev, ...selectedAllocatedIds]);
       setSelectedAllocatedIds([]);
       updateMutation.mutate({ ...baseUpdate(), module_item_ids: remaining, activity_ids: localActivityIds });
     } else {
       await concludeActivities.mutateAsync(selectedAllocatedIds);
       const remaining = localActivityIds.filter(id => !selectedAllocatedIds.includes(id));
       setLocalActivityIds(remaining);
+      setConcludedIds(prev => [...prev, ...selectedAllocatedIds]);
       setSelectedAllocatedIds([]);
       updateMutation.mutate({ ...baseUpdate(), activity_ids: remaining, module_item_ids: localModuleItemIds });
     }
@@ -415,6 +422,7 @@ export default function AllocationEditDialog({ allocation, consultant, projects,
               <ProjectModulesSelector
                 projectId={projectId}
                 allocatedIds={localModuleItemIds}
+                excludeIds={[...concludedIds, ...deallocatedIds.filter(id => !localModuleItemIds.includes(id))]}
                 selectedFreeIds={selectedFreeIds}
                 onToggleFree={toggleFreeItem}
                 selectedAllocatedIds={selectedAllocatedIds}
@@ -426,6 +434,7 @@ export default function AllocationEditDialog({ allocation, consultant, projects,
               <AvulsaActivitiesSelector
                 projectId={projectId}
                 allocatedIds={localActivityIds}
+                excludeIds={[...concludedIds, ...deallocatedIds.filter(id => !localActivityIds.includes(id))]}
                 selectedFreeIds={selectedFreeIds}
                 onToggleFree={toggleFreeItem}
                 selectedAllocatedIds={selectedAllocatedIds}
