@@ -3,7 +3,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { base44 } from '@/api/base44Client';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -52,7 +52,7 @@ function ProjectModulesSelector({ projectId, selectedItems, onToggle }) {
     <div className="border rounded-lg overflow-hidden">
       <div className="flex items-center gap-2 px-3 py-2 bg-muted/40 border-b">
         <Layers className="w-3.5 h-3.5 text-muted-foreground" />
-        <span className="text-xs font-medium text-muted-foreground">Atividades pendentes do projeto</span>
+        <span className="text-xs font-medium text-muted-foreground">Disponíveis para alocar</span>
       </div>
       <div className="max-h-48 overflow-y-auto divide-y">
         {modulesWithItems.map(mod => {
@@ -74,7 +74,12 @@ function ProjectModulesSelector({ projectId, selectedItems, onToggle }) {
                   {modItems.map(item => (
                     <label key={item.id} className="flex items-start gap-2.5 px-5 py-1.5 hover:bg-muted/20 cursor-pointer">
                       <Checkbox checked={selectedItems.includes(item.id)} onCheckedChange={() => onToggle(item.id)} className="mt-0.5" />
-                      <span className="text-xs leading-tight">{item.name}</span>
+                      <span className="text-xs leading-tight flex items-center gap-1.5">
+                        {item.name}
+                        {item.status === 'aguardando_confirmacao' && (
+                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 font-medium whitespace-nowrap">aguard. confirmação</span>
+                        )}
+                      </span>
                     </label>
                   ))}
                 </div>
@@ -112,7 +117,7 @@ function AvulsaActivitiesSelector({ projectId, selectedIds, onToggle }) {
     <div className="border rounded-lg overflow-hidden">
       <div className="flex items-center gap-2 px-3 py-2 bg-muted/40 border-b">
         <ListChecks className="w-3.5 h-3.5 text-muted-foreground" />
-        <span className="text-xs font-medium text-muted-foreground">Atividades em aberto</span>
+        <span className="text-xs font-medium text-muted-foreground">Disponíveis para alocar</span>
       </div>
       <div className="max-h-48 overflow-y-auto divide-y">
         {open.map(a => (
@@ -126,6 +131,24 @@ function AvulsaActivitiesSelector({ projectId, selectedIds, onToggle }) {
   );
 }
 
+/* ── Painel direito simples (sem allocation ainda) ── */
+function NewAllocationNotes({ note, onNoteChange }) {
+  return (
+    <div className="space-y-3">
+      <div className="space-y-2">
+        <Label className="text-xs font-medium">Anotação inicial (opcional)</Label>
+        <Textarea
+          placeholder="Registre uma observação para esta agenda..."
+          value={note}
+          onChange={(e) => onNoteChange(e.target.value)}
+          className="h-32 text-sm resize-none"
+        />
+      </div>
+      <p className="text-xs text-muted-foreground">Após criar a agenda, você poderá adicionar mais acompanhamentos no histórico.</p>
+    </div>
+  );
+}
+
 /* ── Dialog principal ── */
 export default function AllocationCellDialog({ cell, projects, clients, onClose, onSaved }) {
   const { consultant, date, turno } = cell;
@@ -135,10 +158,11 @@ export default function AllocationCellDialog({ cell, projects, clients, onClose,
   const [tipoAgenda, setTipoAgenda] = useState('projeto_modulos');
   const [statusFaturamento, setStatusFaturamento] = useState('a_confirmar');
   const [obs, setObs] = useState('');
+  const [nota, setNota] = useState('');
   const [selectedModuleItemIds, setSelectedModuleItemIds] = useState([]);
   const [selectedActivityIds, setSelectedActivityIds] = useState([]);
+  const [rightTab, setRightTab] = useState('anotacoes');
 
-  // Reset selections on project or tipo change
   useEffect(() => { setSelectedModuleItemIds([]); setSelectedActivityIds([]); }, [projectId, tipoAgenda]);
 
   const getClientLabel = (p) => {
@@ -152,30 +176,26 @@ export default function AllocationCellDialog({ cell, projects, clients, onClose,
   const toggleActivity = (id) =>
     setSelectedActivityIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
 
-  const syncModuleItems = useMutation({
-    mutationFn: (ids) => Promise.all(ids.map(id => base44.entities.ModuleItem.update(id, { status: 'concluido' }))),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['moduleItems', projectId] }),
-  });
-
-  const syncActivities = useMutation({
-    mutationFn: (ids) => Promise.all(ids.map(id => base44.entities.Activity.update(id, { status: 'concluido', data_conclusao: format(new Date(), 'yyyy-MM-dd') }))),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['activities-avulsas', projectId] }),
-  });
-
   const createMutation = useMutation({
-    mutationFn: (data) => base44.entities.Allocation.create(data),
-    onSuccess: async (allocation) => {
-      if (allocation.status === 'encerrada') {
-        if (tipoAgenda === 'projeto_modulos' && selectedModuleItemIds.length > 0)
-          await syncModuleItems.mutateAsync(selectedModuleItemIds);
-        if (tipoAgenda === 'atividades_avulsas' && selectedActivityIds.length > 0)
-          await syncActivities.mutateAsync(selectedActivityIds);
+    mutationFn: async (data) => {
+      const allocation = await base44.entities.Allocation.create(data);
+      // Se há nota inicial, salva como acompanhamento
+      if (nota.trim()) {
+        await base44.entities.AllocationHistory.create({
+          allocation_id: allocation.id,
+          tipo: 'acompanhamento',
+          descricao: nota.trim(),
+        });
       }
+      return allocation;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['allocations-schedule'] });
       onSaved();
     },
   });
 
-  const handleSave = (concludeAndSync = false) => {
+  const handleSave = () => {
     if (tipoAgenda === 'outros' && !obs.trim()) return;
     const selectedProject = projects.find(p => p.id === projectId);
     createMutation.mutate({
@@ -187,114 +207,126 @@ export default function AllocationCellDialog({ cell, projects, clients, onClose,
       periodo_do_dia: turno,
       tipo_agenda: tipoAgenda,
       status_faturamento: statusFaturamento,
-      status: concludeAndSync ? 'encerrada' : 'ativa',
+      status: 'ativa',
       observacoes: obs,
+      module_item_ids: tipoAgenda === 'projeto_modulos' ? selectedModuleItemIds : [],
+      activity_ids: tipoAgenda === 'atividades_avulsas' ? selectedActivityIds : [],
     });
   };
 
-  const hasSelected =
-    (tipoAgenda === 'projeto_modulos' && selectedModuleItemIds.length > 0) ||
-    (tipoAgenda === 'atividades_avulsas' && selectedActivityIds.length > 0);
-
-  const selectedCount = tipoAgenda === 'projeto_modulos' ? selectedModuleItemIds.length : selectedActivityIds.length;
-  const isPending = createMutation.isPending || syncModuleItems.isPending || syncActivities.isPending;
+  const allocationDate = new Date(format(date, 'yyyy-MM-dd') + 'T12:00:00');
+  const isPending = createMutation.isPending;
 
   return (
-    <Dialog open onOpenChange={onClose}>
-      <DialogContent className="max-w-sm">
-        <DialogHeader>
-          <DialogTitle>Nova Alocação</DialogTitle>
-        </DialogHeader>
-        <div className="space-y-1 text-sm text-muted-foreground">
-          <p><span className="font-medium text-foreground">{consultant.name}</span></p>
-          <p>{format(date, "EEEE, dd/MM/yyyy", { locale: ptBR })} — {TURNO_LABELS[turno]}</p>
+    <Dialog open onOpenChange={(open) => { if (!open) onClose(); }}>
+      <DialogContent className="max-w-5xl w-full p-0 overflow-hidden">
+        <div className="sr-only"><DialogHeader><DialogTitle>Nova Alocação</DialogTitle></DialogHeader></div>
+
+        {/* Header */}
+        <div className="flex items-start justify-between px-6 pt-5 pb-3 border-b">
+          <div>
+            <h2 className="text-base font-semibold">Nova Alocação</h2>
+            <div className="space-y-0.5 text-sm text-muted-foreground mt-0.5">
+              <p><span className="font-medium text-foreground">{consultant.name}</span></p>
+              <p>{format(allocationDate, "EEEE, dd/MM/yyyy", { locale: ptBR })} — {TURNO_LABELS[turno]}</p>
+            </div>
+          </div>
         </div>
 
-        <div className="space-y-4 mt-2">
-          {/* Projeto */}
-          <div className="space-y-1">
-            <Label>Projeto / Cliente</Label>
-            <Select value={projectId} onValueChange={setProjectId}>
-              <SelectTrigger><SelectValue placeholder="Selecione um projeto (opcional)" /></SelectTrigger>
-              <SelectContent>
-                {projects.map(p => (
-                  <SelectItem key={p.id} value={p.id}>{getClientLabel(p)}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+        {/* Body: duas colunas */}
+        <div className="flex min-h-[480px] max-h-[70vh] overflow-hidden">
 
-          {/* Finalidade */}
-          <div className="space-y-1">
-            <Label>Finalidade da Agenda</Label>
-            <Select value={tipoAgenda} onValueChange={setTipoAgenda}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {TIPO_AGENDA_OPTIONS.map(o => (
-                  <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          {/* Coluna esquerda */}
+          <div className="flex-1 px-6 py-4 overflow-y-auto space-y-4 border-r">
+            <div className="space-y-1">
+              <Label>Projeto / Cliente</Label>
+              <Select value={projectId} onValueChange={setProjectId}>
+                <SelectTrigger><SelectValue placeholder="Selecione um projeto (opcional)" /></SelectTrigger>
+                <SelectContent>
+                  {projects.map(p => (
+                    <SelectItem key={p.id} value={p.id}>{getClientLabel(p)}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-          {/* Seletor condicional */}
-          {tipoAgenda === 'projeto_modulos' && projectId && (
-            <ProjectModulesSelector
-              projectId={projectId}
-              selectedItems={selectedModuleItemIds}
-              onToggle={toggleModuleItem}
-            />
-          )}
+            <div className="space-y-1">
+              <Label>Finalidade da Agenda</Label>
+              <Select value={tipoAgenda} onValueChange={setTipoAgenda}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {TIPO_AGENDA_OPTIONS.map(o => (
+                    <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-          {tipoAgenda === 'atividades_avulsas' && (
-            <AvulsaActivitiesSelector
-              projectId={projectId}
-              selectedIds={selectedActivityIds}
-              onToggle={toggleActivity}
-            />
-          )}
-
-          {/* Status faturamento */}
-          <div className="space-y-1">
-            <Label>Status de Faturamento</Label>
-            <Select value={statusFaturamento} onValueChange={setStatusFaturamento}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="a_confirmar">A Confirmar</SelectItem>
-                <SelectItem value="faturado">Faturado</SelectItem>
-                <SelectItem value="nao_faturado">Não Faturado</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Observações */}
-          <div className="space-y-1">
-            <Label>Observações {tipoAgenda === 'outros' && <span className="text-destructive">*</span>}</Label>
-            <Textarea
-              placeholder={tipoAgenda === 'outros' ? 'Descreva o motivo desta agenda...' : 'Ex: reunião kick-off, suporte remoto...'}
-              value={obs}
-              onChange={(e) => setObs(e.target.value)}
-              className={`h-16 ${tipoAgenda === 'outros' && !obs.trim() ? 'border-destructive' : ''}`}
-            />
-            {tipoAgenda === 'outros' && !obs.trim() && (
-              <p className="text-xs text-destructive">Obrigatório quando a finalidade é "Outro"</p>
+            {tipoAgenda === 'projeto_modulos' && projectId && (
+              <ProjectModulesSelector
+                projectId={projectId}
+                selectedItems={selectedModuleItemIds}
+                onToggle={toggleModuleItem}
+              />
             )}
+
+            {tipoAgenda === 'atividades_avulsas' && (
+              <AvulsaActivitiesSelector
+                projectId={projectId}
+                selectedIds={selectedActivityIds}
+                onToggle={toggleActivity}
+              />
+            )}
+
+            <div className="space-y-1">
+              <Label>Status de Faturamento</Label>
+              <Select value={statusFaturamento} onValueChange={setStatusFaturamento}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="a_confirmar">A Confirmar</SelectItem>
+                  <SelectItem value="faturado">Faturado</SelectItem>
+                  <SelectItem value="nao_faturado">Não Faturado</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1">
+              <Label>Observações {tipoAgenda === 'outros' && <span className="text-destructive">*</span>}</Label>
+              <Textarea
+                placeholder={tipoAgenda === 'outros' ? 'Descreva o motivo desta agenda...' : 'Ex: reunião kick-off, suporte remoto...'}
+                value={obs}
+                onChange={(e) => setObs(e.target.value)}
+                className={`h-20 resize-none text-sm ${tipoAgenda === 'outros' && !obs.trim() ? 'border-destructive' : ''}`}
+              />
+              {tipoAgenda === 'outros' && !obs.trim() && (
+                <p className="text-xs text-destructive">Obrigatório quando a finalidade é "Outro"</p>
+              )}
+            </div>
+          </div>
+
+          {/* Coluna direita */}
+          <div className="w-96 flex-shrink-0 flex flex-col overflow-hidden">
+            <div className="flex gap-1 px-4 py-2.5 border-b bg-muted/20">
+              <button
+                onClick={() => setRightTab('anotacoes')}
+                className={`px-4 py-1.5 rounded-full text-xs font-medium transition-colors ${rightTab === 'anotacoes' ? 'bg-foreground text-background' : 'text-muted-foreground hover:text-foreground hover:bg-muted'}`}
+              >
+                Anotações
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto px-4 py-4">
+              <NewAllocationNotes note={nota} onNoteChange={setNota} />
+            </div>
           </div>
         </div>
 
-        <DialogFooter className="flex-col gap-2 sm:flex-col">
-          {hasSelected && (
-            <Button className="w-full" onClick={() => handleSave(true)} disabled={isPending}>
-              {isPending ? 'Salvando...' : `Concluir e sincronizar (${selectedCount} item${selectedCount > 1 ? 's' : ''})`}
-            </Button>
-          )}
-          <div className="flex gap-2 w-full">
-            <Button variant="outline" className="flex-1" onClick={onClose}>Cancelar</Button>
-            <Button variant={hasSelected ? 'secondary' : 'default'} className="flex-1" onClick={() => handleSave(false)} disabled={isPending}>
-              {isPending ? 'Salvando...' : 'Salvar'}
-            </Button>
-          </div>
-        </DialogFooter>
+        {/* Footer */}
+        <div className="border-t px-6 py-3 flex gap-2">
+          <Button variant="outline" className="flex-1" onClick={onClose} disabled={isPending}>Cancelar</Button>
+          <Button className="flex-1" onClick={handleSave} disabled={isPending}>
+            {isPending ? 'Salvando...' : 'Salvar'}
+          </Button>
+        </div>
       </DialogContent>
     </Dialog>
   );
