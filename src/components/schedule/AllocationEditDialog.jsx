@@ -23,9 +23,10 @@ const TIPO_AGENDA_OPTIONS = [
   { value: 'outros', label: 'Outro' },
 ];
 
-/* ── Módulos/itens do projeto — seção única ── */
+/* ── Módulos/itens do projeto — duas seções ── */
 function ProjectModulesSelector({ projectId, allocatedIds, excludeIds = [], selectedFreeIds, onToggleFree, selectedAllocatedIds, onToggleAllocated }) {
-  const [expanded, setExpanded] = useState({});
+  const [expandedFree, setExpandedFree] = useState({});
+  const [expandedAllocated, setExpandedAllocated] = useState({});
 
   const { data: modules = [] } = useQuery({
     queryKey: ['projectModules', projectId],
@@ -39,50 +40,48 @@ function ProjectModulesSelector({ projectId, allocatedIds, excludeIds = [], sele
     enabled: !!projectId,
   });
 
-  // Todos os itens visíveis: não concluídos/cancelados e não excluídos desta sessão
-  const visibleItems = items.filter(i =>
+  const freeItems = items.filter(i =>
     !['concluido', 'cancelado'].includes(i.status) &&
+    !allocatedIds.includes(i.id) &&
     !excludeIds.includes(i.id)
   );
+  const allocatedItems = items.filter(i => allocatedIds.includes(i.id) && !excludeIds.includes(i.id));
 
-  const visibleModules = modules.filter(m => visibleItems.some(i => i.project_module_id === m.id));
+  const freeModules = modules.filter(m => freeItems.some(i => i.project_module_id === m.id));
+  const allocatedModules = modules.filter(m => allocatedItems.some(i => i.project_module_id === m.id));
 
   if (!projectId) return null;
 
   return (
-    <div className="border rounded-lg overflow-hidden">
-      <div className="flex items-center gap-2 px-3 py-2 bg-muted/40 border-b">
-        <Layers className="w-3.5 h-3.5 text-muted-foreground" />
-        <span className="text-xs font-medium text-muted-foreground">Disponíveis para alocar</span>
-      </div>
-      {visibleModules.length === 0 ? (
-        <div className="text-xs text-muted-foreground text-center py-3 px-3">Nenhuma atividade disponível</div>
-      ) : (
-        <div className="max-h-48 overflow-y-auto divide-y">
-          {visibleModules.map(mod => {
-            const modItems = visibleItems.filter(i => i.project_module_id === mod.id);
-            const isExpanded = expanded[mod.id] !== false;
-            return (
-              <div key={mod.id}>
-                <button type="button"
-                  onClick={() => setExpanded(prev => ({ ...prev, [mod.id]: !isExpanded }))}
-                  className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-muted/30 transition-colors"
-                >
-                  {isExpanded ? <ChevronDown className="w-3 h-3 text-muted-foreground" /> : <ChevronRight className="w-3 h-3 text-muted-foreground" />}
-                  <span className="text-xs font-medium">{mod.name}</span>
-                  <span className="ml-auto text-xs text-muted-foreground">{modItems.length}</span>
-                </button>
-                {isExpanded && (
-                  <div className="pb-1">
-                    {modItems.map(item => {
-                      const isAllocated = allocatedIds.includes(item.id);
-                      const isChecked = isAllocated
-                        ? selectedAllocatedIds.includes(item.id)
-                        : selectedFreeIds.includes(item.id);
-                      const handleToggle = () => isAllocated ? onToggleAllocated(item.id) : onToggleFree(item.id);
-                      return (
+    <div className="space-y-2">
+      {/* Seção: Disponíveis para alocar */}
+      <div className="border rounded-lg overflow-hidden">
+        <div className="flex items-center gap-2 px-3 py-2 bg-muted/40 border-b">
+          <Layers className="w-3.5 h-3.5 text-muted-foreground" />
+          <span className="text-xs font-medium text-muted-foreground">Disponíveis para alocar</span>
+        </div>
+        {freeModules.length === 0 ? (
+          <div className="text-xs text-muted-foreground text-center py-3 px-3">Nenhuma atividade disponível</div>
+        ) : (
+          <div className="max-h-40 overflow-y-auto divide-y">
+            {freeModules.map(mod => {
+              const modItems = freeItems.filter(i => i.project_module_id === mod.id);
+              const isExpanded = expandedFree[mod.id] !== false;
+              return (
+                <div key={mod.id}>
+                  <button type="button"
+                    onClick={() => setExpandedFree(prev => ({ ...prev, [mod.id]: !isExpanded }))}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-muted/30 transition-colors"
+                  >
+                    {isExpanded ? <ChevronDown className="w-3 h-3 text-muted-foreground" /> : <ChevronRight className="w-3 h-3 text-muted-foreground" />}
+                    <span className="text-xs font-medium">{mod.name}</span>
+                    <span className="ml-auto text-xs text-muted-foreground">{modItems.length}</span>
+                  </button>
+                  {isExpanded && (
+                    <div className="pb-1">
+                      {modItems.map(item => (
                         <label key={item.id} className="flex items-start gap-2.5 px-5 py-1.5 hover:bg-muted/20 cursor-pointer">
-                          <Checkbox checked={isChecked} onCheckedChange={handleToggle} className="mt-0.5" />
+                          <Checkbox checked={selectedFreeIds.includes(item.id)} onCheckedChange={() => onToggleFree(item.id)} className="mt-0.5" />
                           <span className="text-xs leading-tight flex items-center gap-1.5">
                             {item.name}
                             {item.status === 'aguardando_confirmacao' && (
@@ -90,20 +89,62 @@ function ProjectModulesSelector({ projectId, allocatedIds, excludeIds = [], sele
                             )}
                           </span>
                         </label>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            );
-          })}
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Seção: Alocados nesta agenda */}
+      {allocatedModules.length > 0 && (
+        <div className="border border-orange-200 rounded-lg overflow-hidden">
+          <div className="flex items-center gap-2 px-3 py-2 bg-orange-50 border-b border-orange-200">
+            <Layers className="w-3.5 h-3.5 text-orange-500" />
+            <span className="text-xs font-medium text-orange-600">Alocados nesta agenda</span>
+          </div>
+          <div className="max-h-40 overflow-y-auto divide-y divide-orange-100">
+            {allocatedModules.map(mod => {
+              const modItems = allocatedItems.filter(i => i.project_module_id === mod.id);
+              const isExpanded = expandedAllocated[mod.id] !== false;
+              return (
+                <div key={mod.id}>
+                  <button type="button"
+                    onClick={() => setExpandedAllocated(prev => ({ ...prev, [mod.id]: !isExpanded }))}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-orange-50/60 transition-colors"
+                  >
+                    {isExpanded ? <ChevronDown className="w-3 h-3 text-orange-400" /> : <ChevronRight className="w-3 h-3 text-orange-400" />}
+                    <span className="text-xs font-medium text-orange-700">{mod.name}</span>
+                    <span className="ml-auto text-xs text-orange-400">{modItems.length}</span>
+                  </button>
+                  {isExpanded && (
+                    <div className="pb-1">
+                      {modItems.map(item => (
+                        <label key={item.id} className="flex items-start gap-2.5 px-5 py-1.5 hover:bg-orange-50/40 cursor-pointer">
+                          <Checkbox
+                            checked={selectedAllocatedIds.includes(item.id)}
+                            onCheckedChange={() => onToggleAllocated(item.id)}
+                            className="mt-0.5 border-orange-400 data-[state=checked]:bg-orange-500 data-[state=checked]:border-orange-500"
+                          />
+                          <span className="text-xs leading-tight text-orange-700">{item.name}</span>
+                        </label>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
     </div>
   );
 }
 
-/* ── Atividades avulsas — seção única ── */
+/* ── Atividades avulsas — duas seções ── */
 function AvulsaActivitiesSelector({ projectId, allocatedIds, excludeIds = [], selectedFreeIds, onToggleFree, selectedAllocatedIds, onToggleAllocated }) {
   const { data: activities = [] } = useQuery({
     queryKey: ['activities-avulsas', projectId],
@@ -114,32 +155,52 @@ function AvulsaActivitiesSelector({ projectId, allocatedIds, excludeIds = [], se
     enabled: true,
   });
 
-  const visibleActivities = activities.filter(a =>
+  const freeActivities = activities.filter(a =>
     !['concluido', 'cancelado'].includes(a.status) &&
+    !allocatedIds.includes(a.id) &&
     !excludeIds.includes(a.id)
   );
+  const allocatedActivities = activities.filter(a => allocatedIds.includes(a.id) && !excludeIds.includes(a.id));
 
   return (
-    <div className="border rounded-lg overflow-hidden">
-      <div className="flex items-center gap-2 px-3 py-2 bg-muted/40 border-b">
-        <ListChecks className="w-3.5 h-3.5 text-muted-foreground" />
-        <span className="text-xs font-medium text-muted-foreground">Disponíveis para alocar</span>
-      </div>
-      {visibleActivities.length === 0 ? (
-        <div className="text-xs text-muted-foreground text-center py-3 px-3">Nenhuma atividade disponível</div>
-      ) : (
-        <div className="max-h-48 overflow-y-auto divide-y">
-          {visibleActivities.map(a => {
-            const isAllocated = allocatedIds.includes(a.id);
-            const isChecked = isAllocated ? selectedAllocatedIds.includes(a.id) : selectedFreeIds.includes(a.id);
-            const handleToggle = () => isAllocated ? onToggleAllocated(a.id) : onToggleFree(a.id);
-            return (
+    <div className="space-y-2">
+      <div className="border rounded-lg overflow-hidden">
+        <div className="flex items-center gap-2 px-3 py-2 bg-muted/40 border-b">
+          <ListChecks className="w-3.5 h-3.5 text-muted-foreground" />
+          <span className="text-xs font-medium text-muted-foreground">Disponíveis para alocar</span>
+        </div>
+        {freeActivities.length === 0 ? (
+          <div className="text-xs text-muted-foreground text-center py-3 px-3">Nenhuma atividade disponível</div>
+        ) : (
+          <div className="max-h-40 overflow-y-auto divide-y">
+            {freeActivities.map(a => (
               <label key={a.id} className="flex items-start gap-2.5 px-3 py-1.5 hover:bg-muted/20 cursor-pointer">
-                <Checkbox checked={isChecked} onCheckedChange={handleToggle} className="mt-0.5" />
+                <Checkbox checked={selectedFreeIds.includes(a.id)} onCheckedChange={() => onToggleFree(a.id)} className="mt-0.5" />
                 <span className="text-xs leading-tight">{a.titulo}</span>
               </label>
-            );
-          })}
+            ))}
+          </div>
+        )}
+      </div>
+
+      {allocatedActivities.length > 0 && (
+        <div className="border border-orange-200 rounded-lg overflow-hidden">
+          <div className="flex items-center gap-2 px-3 py-2 bg-orange-50 border-b border-orange-200">
+            <ListChecks className="w-3.5 h-3.5 text-orange-500" />
+            <span className="text-xs font-medium text-orange-600">Alocadas nesta agenda</span>
+          </div>
+          <div className="max-h-40 overflow-y-auto divide-y divide-orange-100">
+            {allocatedActivities.map(a => (
+              <label key={a.id} className="flex items-start gap-2.5 px-3 py-1.5 hover:bg-orange-50/40 cursor-pointer">
+                <Checkbox
+                  checked={selectedAllocatedIds.includes(a.id)}
+                  onCheckedChange={() => onToggleAllocated(a.id)}
+                  className="mt-0.5 border-orange-400 data-[state=checked]:bg-orange-500 data-[state=checked]:border-orange-500"
+                />
+                <span className="text-xs leading-tight text-orange-700">{a.titulo}</span>
+              </label>
+            ))}
+          </div>
         </div>
       )}
     </div>
@@ -547,6 +608,7 @@ export default function AllocationEditDialog({ allocation, consultant, projects,
 
         {/* Footer */}
         <div className="border-t px-6 py-3 flex flex-col gap-2">
+          {/* Linha de ações contextuais — aparece somente quando há seleção */}
           {(hasFreeSelected || hasAllocatedSelected) && (
             <div className="flex gap-2 w-full">
               {hasAllocatedSelected && (
@@ -566,8 +628,9 @@ export default function AllocationEditDialog({ allocation, consultant, projects,
               )}
             </div>
           )}
+          {/* Linha principal sempre visível */}
           <div className="flex gap-2 w-full">
-            <Button variant="outline" size="icon" className="text-destructive hover:text-destructive"
+            <Button variant="outline" size="icon" className="text-destructive hover:text-destructive border-destructive/30"
               onClick={handleDelete} disabled={isPending}>
               <Trash2 className="w-4 h-4" />
             </Button>
