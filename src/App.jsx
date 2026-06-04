@@ -38,6 +38,10 @@ const AuthenticatedApp = () => {
       // Redirect to login automatically
       navigateToLogin();
       return null;
+    } else {
+      // Qualquer outro erro de auth (unknown, etc) → redireciona para login
+      navigateToLogin();
+      return null;
     }
   }
 
