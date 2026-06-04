@@ -318,6 +318,34 @@ export default function AllocationEditDialog({ allocation, consultant, projects,
     queryClient.invalidateQueries({ queryKey: ['projectModules', projectId] });
   };
 
+  // ── Registra histórico com nomes dos itens afetados ──
+  const registrarHistorico = async (tipo, descricaoBase, itemIds, entityType = 'modulo') => {
+    let itemNames = [];
+    if (entityType === 'modulo' && projectId) {
+      const allItems = queryClient.getQueryData(['moduleItems', projectId]) || [];
+      const allModules = queryClient.getQueryData(['projectModules', projectId]) || [];
+      itemNames = itemIds.map(id => {
+        const item = allItems.find(i => i.id === id);
+        if (!item) return id;
+        const mod = allModules.find(m => m.id === item.project_module_id);
+        return mod ? `${mod.name} → ${item.name}` : item.name;
+      });
+    } else if (entityType === 'atividade') {
+      const allActivities = queryClient.getQueryData(['activities-avulsas', projectId]) || [];
+      itemNames = itemIds.map(id => {
+        const a = allActivities.find(x => x.id === id);
+        return a ? a.titulo : id;
+      });
+    }
+    const detalhe = itemNames.length > 0 ? `\n• ${itemNames.join('\n• ')}` : '';
+    await base44.entities.AllocationHistory.create({
+      allocation_id: allocation.id,
+      tipo,
+      descricao: descricaoBase + detalhe,
+    });
+    queryClient.invalidateQueries({ queryKey: ['allocation-history', allocation.id] });
+  };
+
   // ── ALOCAR: move itens de "disponível" para "alocados nesta agenda" ──
   const handleAllocar = async () => {
     console.log('[handleAllocar] selectedFreeIds:', selectedFreeIds, 'tipoAgenda:', tipoAgendaRef.current);
@@ -327,20 +355,18 @@ export default function AllocationEditDialog({ allocation, consultant, projects,
       if (tipoAgenda === 'projeto_modulos') {
         const idsToAllocate = [...selectedFreeIds];
         const newIds = [...moduleItemIdsRef.current, ...idsToAllocate];
-        // 1. Atualiza status dos itens no backend
         await Promise.all(idsToAllocate.map(id => base44.entities.ModuleItem.update(id, { status: 'em_andamento' })));
-        // 2. Salva os IDs atualizados na allocation
         await saveAllocation({ module_item_ids: newIds, status: 'ativa' });
-        // 3. Atualiza o ref e força re-render
+        await registrarHistorico('alocacao', `${idsToAllocate.length} item(ns) alocado(s) nesta agenda:`, idsToAllocate, 'modulo');
         setModuleItemIds(newIds);
         setSelectedFreeIds([]);
-        // 4. Sincroniza métricas
         await syncProjectAfterModuleItemChange(idsToAllocate);
       } else if (tipoAgenda === 'atividades_avulsas') {
         const idsToAllocate = [...selectedFreeIds];
         const newIds = [...activityIdsRef.current, ...idsToAllocate];
         await Promise.all(idsToAllocate.map(id => base44.entities.Activity.update(id, { status: 'em_andamento' })));
         await saveAllocation({ activity_ids: newIds, status: 'ativa' });
+        await registrarHistorico('alocacao', `${idsToAllocate.length} atividade(s) alocada(s) nesta agenda:`, idsToAllocate, 'atividade');
         setActivityIds(newIds);
         setSelectedFreeIds([]);
         queryClient.invalidateQueries({ queryKey: ['activities-avulsas', projectId] });
@@ -363,6 +389,7 @@ export default function AllocationEditDialog({ allocation, consultant, projects,
         await Promise.all(idsToDeallocate.map(id => base44.entities.ModuleItem.update(id, { status: 'nao_iniciado' })));
         const statusAfterRemoval = remaining.length > 0 ? 'ativa' : 'encerrada';
         await saveAllocation({ module_item_ids: remaining, status: statusAfterRemoval });
+        await registrarHistorico('desalocacao', `${idsToDeallocate.length} item(ns) desalocado(s) desta agenda:`, idsToDeallocate, 'modulo');
         setModuleItemIds(remaining);
         addDeallocatedIds(idsToDeallocate);
         setSelectedAllocatedIds([]);
@@ -373,6 +400,7 @@ export default function AllocationEditDialog({ allocation, consultant, projects,
         await Promise.all(idsToDeallocate.map(id => base44.entities.Activity.update(id, { status: 'aberto' })));
         const statusAfterRemoval = remaining.length > 0 ? 'ativa' : 'encerrada';
         await saveAllocation({ activity_ids: remaining, status: statusAfterRemoval });
+        await registrarHistorico('desalocacao', `${idsToDeallocate.length} atividade(s) desalocada(s) desta agenda:`, idsToDeallocate, 'atividade');
         setActivityIds(remaining);
         addDeallocatedIds(idsToDeallocate);
         setSelectedAllocatedIds([]);
@@ -394,16 +422,13 @@ export default function AllocationEditDialog({ allocation, consultant, projects,
       if (tipoAgenda === 'projeto_modulos') {
         const idsToConclude = [...selectedAllocatedIds];
         const remaining = moduleItemIdsRef.current.filter(id => !idsToConclude.includes(id));
-        // 1. Marca como concluido no backend
         await Promise.all(idsToConclude.map(id => base44.entities.ModuleItem.update(id, { status: 'concluido' })));
-        // 2. Remove da lista de alocados na allocation
         const statusAfterRemoval = remaining.length > 0 ? 'ativa' : 'encerrada';
         await saveAllocation({ module_item_ids: remaining, status: statusAfterRemoval });
-        // 3. Atualiza refs e UI
+        await registrarHistorico('conclusao', `${idsToConclude.length} item(ns) concluído(s) e sincronizados:`, idsToConclude, 'modulo');
         setModuleItemIds(remaining);
         addConcludedIds(idsToConclude);
         setSelectedAllocatedIds([]);
-        // 4. Sincroniza módulos e métricas
         await syncProjectAfterModuleItemChange(idsToConclude);
       } else {
         const idsToConclude = [...selectedAllocatedIds];
@@ -414,6 +439,7 @@ export default function AllocationEditDialog({ allocation, consultant, projects,
         })));
         const statusAfterRemoval = remaining.length > 0 ? 'ativa' : 'encerrada';
         await saveAllocation({ activity_ids: remaining, status: statusAfterRemoval });
+        await registrarHistorico('conclusao', `${idsToConclude.length} atividade(s) concluída(s) e sincronizadas:`, idsToConclude, 'atividade');
         setActivityIds(remaining);
         addConcludedIds(idsToConclude);
         setSelectedAllocatedIds([]);
