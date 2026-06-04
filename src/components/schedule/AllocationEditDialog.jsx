@@ -449,12 +449,12 @@ export default function AllocationEditDialog({ allocation, consultant, projects,
     }
   };
 
-  // ── SALVAR: salva sem fechar ou encerra a agenda ──
-  const handleSave = async (encerrar = false) => {
+  // ── SALVAR: salva campos básicos e fecha ──
+  const handleSave = async () => {
     if (tipoAgenda === 'outros' && !obs.trim()) return;
     setIsPending(true);
     try {
-      await saveAllocation({ status: encerrar ? 'encerrada' : allocation.status });
+      await saveAllocation({});
       onClose();
     } finally {
       setIsPending(false);
@@ -483,7 +483,7 @@ export default function AllocationEditDialog({ allocation, consultant, projects,
   const excludeIds = [...concludedIdsRef.current, ...deallocatedIdsRef.current];
 
   return (
-    <Dialog open onOpenChange={onClose}>
+    <Dialog open onOpenChange={(open) => { if (!open) onClose(); }}>
       <DialogContent className="max-w-5xl w-full p-0 overflow-hidden">
         <div className="sr-only"><DialogHeader><DialogTitle>Editar Alocação</DialogTitle></DialogHeader></div>
         {/* Header */}
@@ -636,7 +636,7 @@ export default function AllocationEditDialog({ allocation, consultant, projects,
               <Trash2 className="w-4 h-4" />
             </Button>
             <Button variant="outline" className="flex-1" onClick={onClose} disabled={isPending}>Cancelar</Button>
-            <Button className="flex-1" onClick={() => handleSave(false)} disabled={isPending}>
+            <Button className="flex-1" onClick={handleSave} disabled={isPending}>
               {isPending ? 'Salvando...' : 'Salvar'}
             </Button>
           </div>
