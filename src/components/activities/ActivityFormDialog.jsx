@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { base44 } from '@/api/base44Client';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
 import { STATUS_ATIVIDADE, TIPO_ATIVIDADE, CATEGORIA_ATIVIDADE, FASES_PROJETO } from '@/lib/constants';
 
 const ORIGENS = [
@@ -23,16 +24,20 @@ const ORIGENS = [
 
 const EMPTY = {
   titulo: '', descricao: '', project_id: '', fase_projeto: '', origem: 'interno',
-  tipo: 'pendencia_interna', categoria: 'processo', prioridade: 'media', criticidade: 'media',
+  tipo: 'pendencia_interna', categoria: 'processo', prioridade: 'media',
   recorrencia: 'primeira_vez', responsavel: '', solicitante: '', consultor_vinculado: '',
-  gerente_responsavel: '', prazo: '', sla_dias: '', status: 'aberto',
-  bloqueia_fase: false, bloqueia_go_live: false, exige_aprovacao: false,
-  acao_esperada: '', tratativa_realizada: '', proximo_passo: '', causa_raiz: '',
+  gerente_responsavel: '', prazo: '', status: 'aberto',
+  acao_esperada: '', tratativa_realizada: '', causa_raiz: '',
   solucao_aplicada: '', observacoes: '',
 };
 
 export default function ActivityFormDialog({ open, onOpenChange, activity, projects, consultants, onSubmit, isLoading }) {
   const [form, setForm] = useState(EMPTY);
+
+  const { data: gerentes = [] } = useQuery({
+    queryKey: ['projectManagers'],
+    queryFn: () => base44.entities.ProjectManager.list('name', 200),
+  });
 
   useEffect(() => {
     if (activity) setForm({ ...EMPTY, ...activity });
@@ -114,18 +119,6 @@ export default function ActivityFormDialog({ open, onOpenChange, activity, proje
                 </Select>
               </div>
               <div>
-                <Label>Criticidade</Label>
-                <Select value={form.criticidade} onValueChange={(v) => update('criticidade', v)}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="baixa">Baixa</SelectItem>
-                    <SelectItem value="media">Média</SelectItem>
-                    <SelectItem value="alta">Alta</SelectItem>
-                    <SelectItem value="critica">Crítica</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
                 <Label>Recorrência</Label>
                 <Select value={form.recorrencia} onValueChange={(v) => update('recorrencia', v)}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
@@ -154,36 +147,29 @@ export default function ActivityFormDialog({ open, onOpenChange, activity, proje
                   </SelectContent>
                 </Select>
               </div>
-              <div><Label>Gerente Responsável</Label><Input value={form.gerente_responsavel} onChange={(e) => update('gerente_responsavel', e.target.value)} /></div>
+              <div>
+                <Label>Gerente Responsável</Label>
+                <Select value={form.gerente_responsavel || ''} onValueChange={(v) => update('gerente_responsavel', v)}>
+                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                  <SelectContent>
+                    {gerentes.filter(g => g.ativo).map(g => <SelectItem key={g.id} value={g.name}>{g.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </div>
 
           {/* Control */}
           <div className="space-y-3">
             <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Controle</h4>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 gap-3">
               <div><Label>Prazo</Label><Input type="date" value={form.prazo} onChange={(e) => update('prazo', e.target.value)} /></div>
-              <div><Label>SLA (dias)</Label><Input type="number" value={form.sla_dias} onChange={(e) => update('sla_dias', parseInt(e.target.value) || '')} /></div>
               <div>
                 <Label>Status</Label>
                 <Select value={form.status} onValueChange={(v) => update('status', v)}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>{STATUS_ATIVIDADE.map(s => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}</SelectContent>
                 </Select>
-              </div>
-            </div>
-            <div className="flex flex-wrap gap-6">
-              <div className="flex items-center gap-2">
-                <Switch checked={form.bloqueia_fase} onCheckedChange={(v) => update('bloqueia_fase', v)} />
-                <Label className="text-sm">Bloqueia Fase</Label>
-              </div>
-              <div className="flex items-center gap-2">
-                <Switch checked={form.bloqueia_go_live} onCheckedChange={(v) => update('bloqueia_go_live', v)} />
-                <Label className="text-sm">Bloqueia Go-Live</Label>
-              </div>
-              <div className="flex items-center gap-2">
-                <Switch checked={form.exige_aprovacao} onCheckedChange={(v) => update('exige_aprovacao', v)} />
-                <Label className="text-sm">Exige Aprovação</Label>
               </div>
             </div>
           </div>
@@ -193,7 +179,6 @@ export default function ActivityFormDialog({ open, onOpenChange, activity, proje
             <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Execução</h4>
             <div><Label>Ação Esperada</Label><Textarea value={form.acao_esperada} onChange={(e) => update('acao_esperada', e.target.value)} rows={2} /></div>
             <div><Label>Tratativa Realizada</Label><Textarea value={form.tratativa_realizada} onChange={(e) => update('tratativa_realizada', e.target.value)} rows={2} /></div>
-            <div><Label>Próximo Passo</Label><Input value={form.proximo_passo} onChange={(e) => update('proximo_passo', e.target.value)} /></div>
             <div><Label>Observações</Label><Textarea value={form.observacoes} onChange={(e) => update('observacoes', e.target.value)} rows={2} /></div>
           </div>
 
