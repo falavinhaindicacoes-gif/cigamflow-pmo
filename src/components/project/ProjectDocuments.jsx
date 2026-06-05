@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { FileText, CheckCircle, Clock, AlertCircle, ChevronRight, Plus } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import { FileText, CheckCircle, Clock, AlertCircle, ChevronRight, Plus, GripVertical } from 'lucide-react';
+import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 
 const DOCS = [
   { tipo: 'dados_iniciais', label: 'Dados Iniciais / Proposta', desc: 'Questionário de levantamento e contexto do projeto', fase: 'comercial' },
@@ -22,6 +21,8 @@ const STATUS_CONFIG = {
 };
 
 export default function ProjectDocuments({ projectId, onOpenDoc }) {
+  const [orderedDocs, setOrderedDocs] = useState(DOCS);
+
   const { data: docs = [] } = useQuery({
     queryKey: ['documents', projectId],
     queryFn: () => base44.entities.ProjectDocument.filter({ project_id: projectId }),
@@ -29,47 +30,73 @@ export default function ProjectDocuments({ projectId, onOpenDoc }) {
 
   const getDoc = (tipo) => docs.find(d => d.tipo === tipo);
 
+  const handleDragEnd = (result) => {
+    if (!result.destination) return;
+    const reordered = Array.from(orderedDocs);
+    const [moved] = reordered.splice(result.source.index, 1);
+    reordered.splice(result.destination.index, 0, moved);
+    setOrderedDocs(reordered);
+  };
+
   return (
     <div className="space-y-3">
       <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Documentos da Metodologia</h3>
-      <div className="grid gap-3">
-        {DOCS.map((doc) => {
-          const existing = getDoc(doc.tipo);
-          const statusInfo = existing ? STATUS_CONFIG[existing.status] || STATUS_CONFIG.rascunho : null;
-          const Icon = statusInfo ? statusInfo.icon : FileText;
+      <DragDropContext onDragEnd={handleDragEnd}>
+        <Droppable droppableId="documents">
+          {(provided) => (
+            <div className="grid gap-3" {...provided.droppableProps} ref={provided.innerRef}>
+              {orderedDocs.map((doc, idx) => {
+                const existing = getDoc(doc.tipo);
+                const statusInfo = existing ? STATUS_CONFIG[existing.status] || STATUS_CONFIG.rascunho : null;
 
-          return (
-            <button
-              key={doc.tipo}
-              onClick={() => onOpenDoc(doc.tipo, existing)}
-              className="w-full text-left bg-card border rounded-xl p-4 hover:shadow-md hover:border-primary/30 transition-all group flex items-center gap-4"
-            >
-              <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${existing ? 'bg-primary/10' : 'bg-muted'}`}>
-                <FileText className={`w-5 h-5 ${existing ? 'text-primary' : 'text-muted-foreground'}`} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-0.5">
-                  <span className="font-medium text-sm">{doc.label}</span>
-                  {existing && (
-                    <span className={`text-[11px] px-2 py-0.5 rounded-full font-medium ${statusInfo.color}`}>
-                      {statusInfo.label}
-                    </span>
-                  )}
-                </div>
-                <p className="text-xs text-muted-foreground">{doc.desc}</p>
-              </div>
-              <div className="flex-shrink-0 flex items-center gap-2">
-                {!existing && (
-                  <span className="text-xs text-primary font-medium opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
-                    <Plus className="w-3 h-3" /> Criar
-                  </span>
-                )}
-                <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
-              </div>
-            </button>
-          );
-        })}
-      </div>
+                return (
+                  <Draggable key={doc.tipo} draggableId={doc.tipo} index={idx}>
+                    {(prov) => (
+                      <div
+                        ref={prov.innerRef}
+                        {...prov.draggableProps}
+                        className="w-full text-left bg-card border rounded-xl p-4 hover:shadow-md hover:border-primary/30 transition-all group flex items-center gap-3"
+                      >
+                        <div {...prov.dragHandleProps} className="text-muted-foreground flex-shrink-0 cursor-grab">
+                          <GripVertical className="w-4 h-4" />
+                        </div>
+                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${existing ? 'bg-primary/10' : 'bg-muted'}`}>
+                          <FileText className={`w-5 h-5 ${existing ? 'text-primary' : 'text-muted-foreground'}`} />
+                        </div>
+                        <button
+                          className="flex-1 min-w-0 text-left flex items-center gap-3"
+                          onClick={() => onOpenDoc(doc.tipo, existing)}
+                        >
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-0.5">
+                              <span className="font-medium text-sm">{doc.label}</span>
+                              {existing && (
+                                <span className={`text-[11px] px-2 py-0.5 rounded-full font-medium ${statusInfo.color}`}>
+                                  {statusInfo.label}
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-xs text-muted-foreground">{doc.desc}</p>
+                          </div>
+                          <div className="flex-shrink-0 flex items-center gap-2">
+                            {!existing && (
+                              <span className="text-xs text-primary font-medium opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
+                                <Plus className="w-3 h-3" /> Criar
+                              </span>
+                            )}
+                            <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                          </div>
+                        </button>
+                      </div>
+                    )}
+                  </Draggable>
+                );
+              })}
+              {provided.placeholder}
+            </div>
+          )}
+        </Droppable>
+      </DragDropContext>
     </div>
   );
 }
