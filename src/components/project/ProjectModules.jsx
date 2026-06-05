@@ -121,22 +121,12 @@ export default function ProjectModules({ projectId, project }) {
      },
    });
    const updateItem = useMutation({
-     onMutate: async ({ id, data }) => {
-       await queryClient.cancelQueries({ queryKey: ['moduleItems', projectId] });
-       const previous = queryClient.getQueryData(['moduleItems', projectId]);
-       queryClient.setQueryData(['moduleItems', projectId], (old = []) =>
-         old.map(item => item.id === id ? { ...item, ...data } : item)
-       );
-       return { previous };
-     },
      mutationFn: async ({ id, data, moduleId }) => {
        await base44.entities.ModuleItem.update(id, data);
-       // Run sync in background — don't await to keep UI fast
-       if (moduleId) updateModuleStatusFromItems(moduleId, projectId).catch(() => {});
-       updateProjectMetrics(projectId, queryClient).catch(() => {});
-     },
-     onError: (_err, _vars, context) => {
-       if (context?.previous) queryClient.setQueryData(['moduleItems', projectId], context.previous);
+       if (moduleId) {
+         await updateModuleStatusFromItems(moduleId, projectId);
+       }
+       await updateProjectMetrics(projectId, queryClient);
      },
      onSuccess: () => {
        queryClient.invalidateQueries({ queryKey: ['moduleItems', projectId] });
