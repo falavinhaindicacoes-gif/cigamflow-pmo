@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import PageHeader from '@/components/shared/PageHeader';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import TemplateItemSubItems from '@/components/templates/TemplateItemSubItems';
 
 export default function ModuleTemplates() {
   const queryClient = useQueryClient();
@@ -209,9 +210,9 @@ export default function ModuleTemplates() {
                               <Trash2 className="w-3 h-3" />
                             </button>
                           </div>
-                        </div>
-                      )}
-                    </Draggable>
+                          </div>
+                          )}
+                          </Draggable>
                   ))}
                   {provided.placeholder}
                 </div>
@@ -291,7 +292,8 @@ export default function ModuleTemplates() {
                                             {items.map((item, iIdx) => (
                                               <Draggable key={item.id} draggableId={item.id} index={iIdx}>
                                                 {(pI) => (
-                                                  <div ref={pI.innerRef} {...pI.draggableProps} className="flex items-center gap-2 px-3 py-2 bg-background rounded-lg border border-border text-sm group">
+                                                  <div ref={pI.innerRef} {...pI.draggableProps} className="px-3 py-2 bg-background rounded-lg border border-border text-sm group">
+                                                    <div className="flex items-center gap-2">
                                                     <div {...pI.dragHandleProps} className="cursor-grab text-muted-foreground">
                                                       <GripVertical className="w-3.5 h-3.5" />
                                                     </div>
@@ -321,9 +323,11 @@ export default function ModuleTemplates() {
                                                         </DropdownMenuContent>
                                                       </DropdownMenu>
                                                     </div>
-                                                  </div>
-                                                )}
-                                              </Draggable>
+                                                    </div>
+                                                    <TemplateItemSubItems item={item} />
+                                                    </div>
+                                                    )}
+                                                    </Draggable>
                                             ))}
                                             {pItem.placeholder}
                                           </div>

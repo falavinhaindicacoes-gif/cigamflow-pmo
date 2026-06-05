@@ -63,6 +63,12 @@ export default function ProjectModules({ projectId, project }) {
     staleTime: 120_000,
   });
 
+  const { data: templateSubItems = [] } = useQuery({
+    queryKey: ['allTemplateSubItems'],
+    queryFn: () => base44.entities.TemplateModuleSubItem.list('ordem', 2000),
+    staleTime: 120_000,
+  });
+
   const { data: allSubItems = [] } = useQuery({
     queryKey: ['allModuleSubItems', projectId],
     queryFn: () => base44.entities.ModuleSubItem.filter({ project_id: projectId }, 'ordem', 2000),
@@ -194,12 +200,24 @@ export default function ProjectModules({ projectId, project }) {
       const tItems = templateItems.filter(it => it.template_module_id === mod.id).sort((a, b) => a.ordem - b.ordem);
       for (let j = 0; j < tItems.length; j++) {
         const it = tItems[j];
-        await base44.entities.ModuleItem.create({
-          project_id: projectId, project_module_id: created.id, name: it.name,
-          descricao: it.descricao, horas_necessarias: it.horas_necessarias,
-          horas_detalhadas: it.horas_detalhadas, responsavel: it.responsavel,
-          template_item_id: it.id, status: 'nao_iniciado', ordem: j,
-        });
+        const createdItem = await base44.entities.ModuleItem.create({
+            project_id: projectId, project_module_id: created.id, name: it.name,
+            descricao: it.descricao, horas_necessarias: it.horas_necessarias,
+            horas_detalhadas: it.horas_detalhadas, responsavel: it.responsavel,
+            template_item_id: it.id, status: 'nao_iniciado', ordem: j,
+          });
+          // Copy sub-items from template
+          const tSubItems = templateSubItems.filter(s => s.template_module_item_id === it.id).sort((a, b) => a.ordem - b.ordem);
+          for (let k = 0; k < tSubItems.length; k++) {
+            await base44.entities.ModuleSubItem.create({
+              module_item_id: createdItem.id,
+              project_module_id: created.id,
+              project_id: projectId,
+              name: tSubItems[k].name,
+              status: 'nao_iniciado',
+              ordem: k,
+            });
+          }
       }
     }
     queryClient.invalidateQueries({ queryKey: ['projectModules', projectId] });

@@ -1,0 +1,28 @@
+{
+  "name": "TemplateModuleSubItem",
+  "type": "object",
+  "properties": {
+    "template_module_item_id": {
+      "type": "string",
+      "description": "ID do TemplateModuleItem pai"
+    },
+    "template_module_id": {
+      "type": "string"
+    },
+    "template_id": {
+      "type": "string"
+    },
+    "name": {
+      "type": "string",
+      "description": "Nome do sub-item do template"
+    },
+    "ordem": {
+      "type": "number",
+      "default": 0
+    }
+  },
+  "required": [
+    "template_module_item_id",
+    "name"
+  ]
+}
