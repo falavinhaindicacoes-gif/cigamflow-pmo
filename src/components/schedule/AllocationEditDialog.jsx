@@ -14,6 +14,7 @@ import AllocationHistoryTab from './AllocationHistoryTab';
 import AllocationLogsTab from './AllocationLogsTab';
 import { updateProjectMetrics } from '@/utils/projectMetrics';
 import { updateModuleStatusFromItems } from '@/utils/statusAutomation';
+import { useAuth } from '@/lib/AuthContext';
 
 const TURNO_LABELS = { manha: 'Manhã', tarde: 'Tarde', noite: 'Noite' };
 
@@ -210,6 +211,7 @@ function AvulsaActivitiesSelector({ projectId, allocatedIds, excludeIds = [], se
 /* ── Dialog principal ── */
 export default function AllocationEditDialog({ allocation, consultant, projects, clients, onClose }) {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
 
   const [rightTab, setRightTab] = useState('anotacoes');
   const [projectId, setProjectId] = useState(allocation.project_id || '');
@@ -350,6 +352,7 @@ export default function AllocationEditDialog({ allocation, consultant, projects,
       allocation_id: allocation.id,
       tipo,
       descricao: descricaoBase + detalhe,
+      autor: user?.full_name || user?.email || '',
     });
     queryClient.invalidateQueries({ queryKey: ['allocation-history', allocation.id] });
   };

@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Clock, MessageSquarePlus, CheckCircle2, ArrowRightLeft, Save, XCircle } from 'lucide-react';
+import { useAuth } from '@/lib/AuthContext';
 
 const TIPO_ICONS = {
   acompanhamento: MessageSquarePlus,
@@ -38,6 +39,7 @@ const TIPO_LABELS = {
 export default function AllocationHistoryTab({ allocationId, compact = false }) {
   const queryClient = useQueryClient();
   const [novoAcomp, setNovoAcomp] = useState('');
+  const { user } = useAuth();
 
   const { data: history = [], isLoading } = useQuery({
     queryKey: ['allocation-history', allocationId],
@@ -59,6 +61,7 @@ export default function AllocationHistoryTab({ allocationId, compact = false }) 
       allocation_id: allocationId,
       tipo: 'acompanhamento',
       descricao: novoAcomp.trim(),
+      autor: user?.full_name || user?.email || '',
     });
   };
 
@@ -75,6 +78,7 @@ export default function AllocationHistoryTab({ allocationId, compact = false }) 
                 <span className="text-xs font-semibold">{TIPO_LABELS[entry.tipo] || entry.tipo}</span>
                 <span className="text-xs opacity-60">{entry.created_date ? format(new Date(entry.created_date), "dd/MM HH:mm", { locale: ptBR }) : ''}</span>
               </div>
+              {entry.autor && <p className="text-[10px] opacity-60 mb-0.5">por {entry.autor}</p>}
               <p className="text-xs leading-snug">{entry.descricao}</p>
             </div>
           );
@@ -127,7 +131,7 @@ export default function AllocationHistoryTab({ allocationId, compact = false }) 
                   <MessageSquarePlus className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-2 mb-1">
-                      <span className="text-xs font-semibold">Acompanhamento</span>
+                      <span className="text-xs font-semibold">{entry.autor || 'Acompanhamento'}</span>
                       <span className="text-xs opacity-60 flex-shrink-0">
                         {entry.created_date ? format(new Date(entry.created_date), "dd/MM/yy HH:mm", { locale: ptBR }) : ''}
                       </span>
