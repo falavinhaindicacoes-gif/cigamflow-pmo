@@ -136,7 +136,7 @@ function ModulesPanel({ modules }) {
           <Layers className="w-4 h-4 text-primary" />
           <h4 className="font-semibold text-sm">Módulos do Projeto</h4>
         </div>
-        <span className="text-xs font-medium text-muted-foreground">{concluidos.length}/{modules.length} concluídos ({pct}%)</span>
+        <span className="text-xs font-medium text-muted-foreground">{concluidos.length}/{modules.length} concluídos</span>
       </div>
 
       {/* Barra de progresso */}
