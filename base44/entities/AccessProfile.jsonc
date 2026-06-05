@@ -1,0 +1,28 @@
+{
+  "name": "AccessProfile",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Nome do perfil de acesso"
+    },
+    "descricao": {
+      "type": "string"
+    },
+    "paginas": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Lista de slugs de p\u00e1ginas permitidas",
+      "default": []
+    },
+    "ativo": {
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "required": [
+    "name"
+  ]
+}

@@ -18,8 +18,9 @@ import ProjectModules from '@/components/project/ProjectModules';
 import DocumentForm from '@/pages/DocumentForm';
 import ActivityFormDialog from '@/components/activities/ActivityFormDialog';
 
+const projectId = window.location.pathname.split('/projects/')[1];
+
 export default function ProjectDetail() {
-  const projectId = window.location.pathname.split('/projects/')[1];
   const queryClient = useQueryClient();
   const [openDoc, setOpenDoc] = useState(null); // { tipo, doc }
   const [showNewActivity, setShowNewActivity] = useState(false);
@@ -34,19 +35,22 @@ export default function ProjectDetail() {
   const { data: clients = [] } = useQuery({
     queryKey: ['clients'],
     queryFn: () => base44.entities.Client.list('-created_date', 200),
-    staleTime: 60_000,
+    staleTime: 120_000,
   });
 
+  // Lazy: só carrega quando o dialog de nova atividade está aberto
   const { data: consultants = [] } = useQuery({
     queryKey: ['consultants'],
     queryFn: () => base44.entities.Consultant.list('-created_date', 100),
-    staleTime: 60_000,
+    staleTime: 120_000,
+    enabled: showNewActivity,
   });
 
   const { data: allProjects = [] } = useQuery({
     queryKey: ['projects'],
     queryFn: () => base44.entities.Project.list('-created_date', 100),
-    staleTime: 30_000,
+    staleTime: 60_000,
+    enabled: showNewActivity,
   });
 
   const updateMutation = useMutation({

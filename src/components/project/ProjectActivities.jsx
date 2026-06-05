@@ -11,6 +11,7 @@ export default function ProjectActivities({ projectId }) {
     queryKey: ['activities', projectId],
     queryFn: () => base44.entities.Activity.filter({ project_id: projectId }, '-created_date', 200),
     enabled: !!projectId,
+    staleTime: 30_000,
   });
 
   const open = activities.filter(a => a.status !== 'concluido' && a.status !== 'cancelado');

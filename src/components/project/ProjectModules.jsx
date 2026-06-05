@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { updateProjectMetrics } from '@/utils/projectMetrics';
-import { updateModuleStatusFromItems, revertModuleStatusIfNeeded, syncAllProjectModuleStatuses } from '@/utils/statusAutomation';
+import { updateModuleStatusFromItems, revertModuleStatusIfNeeded } from '@/utils/statusAutomation';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { Plus, Pencil, Trash2, GripVertical, ChevronDown, ChevronRight, LayoutTemplate, CheckCircle2, Circle, AlertCircle, XCircle, Copy, MoreHorizontal } from 'lucide-react';
 import ModuleItemSubItems from './ModuleItemSubItems';
@@ -45,28 +45,33 @@ export default function ProjectModules({ projectId, project }) {
     staleTime: 15_000,
   });
 
+  // Templates: só carrega quando o dialog de carregar template está aberto
   const { data: templates = [] } = useQuery({
     queryKey: ['moduleTemplates'],
     queryFn: () => base44.entities.ModuleTemplate.list('-created_date', 100),
-    staleTime: 120_000,
+    staleTime: 300_000,
+    enabled: showLoadTemplate,
   });
 
   const { data: templateModules = [] } = useQuery({
     queryKey: ['allTemplateModules'],
     queryFn: () => base44.entities.TemplateModule.list('ordem', 500),
-    staleTime: 120_000,
+    staleTime: 300_000,
+    enabled: showLoadTemplate,
   });
 
   const { data: templateItems = [] } = useQuery({
     queryKey: ['allTemplateModuleItems'],
     queryFn: () => base44.entities.TemplateModuleItem.list('ordem', 1000),
-    staleTime: 120_000,
+    staleTime: 300_000,
+    enabled: showLoadTemplate,
   });
 
   const { data: templateSubItems = [] } = useQuery({
     queryKey: ['allTemplateSubItems'],
     queryFn: () => base44.entities.TemplateModuleSubItem.list('ordem', 2000),
-    staleTime: 120_000,
+    staleTime: 300_000,
+    enabled: showLoadTemplate,
   });
 
   const { data: allSubItems = [] } = useQuery({
@@ -75,15 +80,7 @@ export default function ProjectModules({ projectId, project }) {
     staleTime: 15_000,
   });
 
-  // Sincroniza status de módulos apenas na primeira carga para corrigir inconsistências
-  useEffect(() => {
-    if (modules.length > 0 && items.length > 0) {
-      console.log('[ProjectModules] Sincronizando status de módulos na carga inicial...');
-      syncAllProjectModuleStatuses(projectId)
-        .catch(err => console.error('[ProjectModules] Erro ao sincronizar status:', err));
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [projectId]);
+
 
   // Module mutations
   const createModule = useMutation({
@@ -124,11 +121,10 @@ export default function ProjectModules({ projectId, project }) {
      },
    });
    const updateItem = useMutation({
-     mutationFn: async ({ id, data }) => {
-       const items = await base44.entities.ModuleItem.filter({ id });
+     mutationFn: async ({ id, data, moduleId }) => {
        await base44.entities.ModuleItem.update(id, data);
-       if (items[0]?.project_module_id) {
-         await updateModuleStatusFromItems(items[0].project_module_id, projectId);
+       if (moduleId) {
+         await updateModuleStatusFromItems(moduleId, projectId);
        }
        await updateProjectMetrics(projectId, queryClient);
      },
@@ -138,11 +134,10 @@ export default function ProjectModules({ projectId, project }) {
      },
    });
    const deleteItem = useMutation({
-     mutationFn: async (id) => {
-       const items = await base44.entities.ModuleItem.filter({ id });
+     mutationFn: async ({ id, moduleId }) => {
        await base44.entities.ModuleItem.delete(id);
-       if (items[0]?.project_module_id) {
-         await revertModuleStatusIfNeeded(items[0].project_module_id);
+       if (moduleId) {
+         await revertModuleStatusIfNeeded(moduleId);
        }
        await updateProjectMetrics(projectId, queryClient);
      },
@@ -281,12 +276,6 @@ export default function ProjectModules({ projectId, project }) {
           )}
         </div>
         <div className="flex gap-2">
-           <Button variant="outline" size="sm" onClick={async () => {
-             await syncAllProjectModuleStatuses(projectId);
-             queryClient.invalidateQueries({ queryKey: ['projectModules', projectId] });
-           }}>
-             ⟳ Revisar Status
-           </Button>
            <Button variant="outline" size="sm" onClick={() => setShowLoadTemplate(true)}>
              <LayoutTemplate className="w-4 h-4 mr-1" /> Carregar Template
            </Button>
@@ -369,7 +358,7 @@ export default function ProjectModules({ projectId, project }) {
                                                    <div {...pI.dragHandleProps} className="cursor-grab text-muted-foreground">
                                                      <GripVertical className="w-3.5 h-3.5" />
                                                    </div>
-                                                   <Select value={item.status} onValueChange={(v) => updateItem.mutate({ id: item.id, data: { status: v } })}>
+                                                   <Select value={item.status} onValueChange={(v) => updateItem.mutate({ id: item.id, data: { status: v }, moduleId: mod.id })}>
                                                      <SelectTrigger className="h-5 w-5 border-0 bg-transparent p-0 flex-shrink-0">
                                                        <iStatus.icon className={`w-4 h-4 ${item.status === 'concluido' ? 'text-green-600' : item.status === 'em_andamento' ? 'text-blue-600' : 'text-gray-400'}`} />
                                                      </SelectTrigger>
@@ -403,7 +392,7 @@ export default function ProjectModules({ projectId, project }) {
                                                            <Copy className="w-3.5 h-3.5 mr-2" /> Replicar
                                                          </DropdownMenuItem>
                                                          <DropdownMenuSeparator />
-                                                         <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => { if (confirm('Excluir item?')) deleteItem.mutate(item.id); }}>
+                                                         <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => { if (confirm('Excluir item?')) deleteItem.mutate({ id: item.id, moduleId: mod.id }); }}>
                                                            <Trash2 className="w-3.5 h-3.5 mr-2" /> Excluir
                                                          </DropdownMenuItem>
                                                        </DropdownMenuContent>
@@ -484,7 +473,7 @@ export default function ProjectModules({ projectId, project }) {
         initial={editingItem}
         onSubmit={(data) => {
           const modItems = items.filter(i => i.project_module_id === editingItemModuleId);
-          if (editingItem) updateItem.mutate({ id: editingItem.id, data });
+          if (editingItem) updateItem.mutate({ id: editingItem.id, data, moduleId: editingItemModuleId });
           else createItem.mutate({ ...data, project_module_id: editingItemModuleId, project_id: projectId, ordem: modItems.length });
         }}
       />
