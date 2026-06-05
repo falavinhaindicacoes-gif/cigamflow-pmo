@@ -15,7 +15,6 @@ import ProjectStatusReports from '@/components/project/ProjectStatusReports';
 import ProjectHistorico from '@/components/project/ProjectHistorico';
 import ProjectAuditoria from '@/components/project/ProjectAuditoria';
 import ProjectModules from '@/components/project/ProjectModules';
-import ProjectGanttChart from '@/components/project/ProjectGanttChart';
 import DocumentForm from '@/pages/DocumentForm';
 import ActivityFormDialog from '@/components/activities/ActivityFormDialog';
 
@@ -128,7 +127,6 @@ export default function ProjectDetail() {
             <TabsTrigger value="reports" className="text-xs">Status Reports</TabsTrigger>
             <TabsTrigger value="team" className="text-xs">Equipe</TabsTrigger>
             <TabsTrigger value="timeline" className="text-xs">Cronograma</TabsTrigger>
-            <TabsTrigger value="gantt" className="text-xs">Gantt</TabsTrigger>
             <TabsTrigger value="historico" className="text-xs">Histórico</TabsTrigger>
             <TabsTrigger value="modulos" className="text-xs">Project</TabsTrigger>
             <TabsTrigger value="auditoria" className="text-xs">Auditoria</TabsTrigger>
@@ -160,10 +158,6 @@ export default function ProjectDetail() {
 
         <TabsContent value="timeline">
           <ProjectTimeline project={project} />
-        </TabsContent>
-
-        <TabsContent value="gantt">
-          <ProjectGanttChart projectId={projectId} project={project} />
         </TabsContent>
 
         <TabsContent value="historico">
