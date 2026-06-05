@@ -18,9 +18,8 @@ import ProjectModules from '@/components/project/ProjectModules';
 import DocumentForm from '@/pages/DocumentForm';
 import ActivityFormDialog from '@/components/activities/ActivityFormDialog';
 
-const projectId = window.location.pathname.split('/projects/')[1];
-
 export default function ProjectDetail() {
+  const projectId = window.location.pathname.split('/projects/')[1];
   const queryClient = useQueryClient();
   const [openDoc, setOpenDoc] = useState(null); // { tipo, doc }
   const [showNewActivity, setShowNewActivity] = useState(false);
