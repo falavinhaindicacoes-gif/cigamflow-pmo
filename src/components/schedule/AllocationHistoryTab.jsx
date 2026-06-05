@@ -83,9 +83,12 @@ export default function AllocationHistoryTab({ allocationId, compact = false }) 
     );
   }
 
+  // Aba "Anotações" mostra apenas acompanhamentos manuais
+  const acompanhamentos = history.filter(e => e.tipo === 'acompanhamento');
+
   return (
     <div className="space-y-4 h-full flex flex-col">
-      {/* Adicionar acompanhamento */}
+      {/* Formulário de novo acompanhamento */}
       <div className="space-y-2">
         <Label className="text-xs font-medium">Novo Acompanhamento</Label>
         <Textarea
@@ -105,46 +108,36 @@ export default function AllocationHistoryTab({ allocationId, compact = false }) 
         </Button>
       </div>
 
-      <div className="border-t pt-3 flex-1 overflow-hidden flex flex-col">
-        <p className="text-xs font-medium text-muted-foreground mb-2">
-          Histórico ({history.length} registro{history.length !== 1 ? 's' : ''})
-        </p>
+      {/* Lista de acompanhamentos manuais */}
+      <div className="flex-1 overflow-hidden flex flex-col">
         {isLoading ? (
           <div className="flex items-center justify-center py-6">
             <div className="w-5 h-5 border-2 border-slate-200 border-t-slate-600 rounded-full animate-spin" />
           </div>
-        ) : history.length === 0 ? (
+        ) : acompanhamentos.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
-            <Clock className="w-8 h-8 mx-auto mb-2 opacity-30" />
-            <p className="text-xs">Nenhum registro ainda</p>
+            <MessageSquarePlus className="w-8 h-8 mx-auto mb-2 opacity-30" />
+            <p className="text-xs">Nenhum acompanhamento registrado</p>
           </div>
         ) : (
           <div className="space-y-2 overflow-y-auto flex-1 pr-1">
-            {history.map((entry) => {
-              const Icon = TIPO_ICONS[entry.tipo] || Clock;
-              const colorClass = TIPO_COLORS[entry.tipo] || TIPO_COLORS.acompanhamento;
-              return (
-                <div key={entry.id} className={`border rounded-lg p-3 ${colorClass}`}>
-                  <div className="flex items-start gap-2">
-                    <Icon className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between gap-2 mb-1">
-                        <span className="text-xs font-semibold">{TIPO_LABELS[entry.tipo] || entry.tipo}</span>
-                        <span className="text-xs opacity-60 flex-shrink-0">
-                          {entry.created_date
-                            ? format(new Date(entry.created_date), "dd/MM/yy HH:mm", { locale: ptBR })
-                            : ''}
-                        </span>
-                      </div>
-                      <p className="text-xs leading-relaxed whitespace-pre-wrap">{entry.descricao}</p>
-                      {entry.observacoes && (
-                        <p className="text-xs mt-1 opacity-70">{entry.observacoes}</p>
-                      )}
+            {acompanhamentos.map((entry) => (
+              <div key={entry.id} className={`border rounded-lg p-3 ${TIPO_COLORS.acompanhamento}`}>
+                <div className="flex items-start gap-2">
+                  <MessageSquarePlus className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2 mb-1">
+                      <span className="text-xs font-semibold">Acompanhamento</span>
+                      <span className="text-xs opacity-60 flex-shrink-0">
+                        {entry.created_date ? format(new Date(entry.created_date), "dd/MM/yy HH:mm", { locale: ptBR }) : ''}
+                      </span>
                     </div>
+                    <p className="text-xs leading-relaxed whitespace-pre-wrap">{entry.descricao}</p>
+                    {entry.observacoes && <p className="text-xs mt-1 opacity-70">{entry.observacoes}</p>}
                   </div>
                 </div>
-              );
-            })}
+              </div>
+            ))}
           </div>
         )}
       </div>
