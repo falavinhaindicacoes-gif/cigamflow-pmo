@@ -3,11 +3,12 @@ import { Link, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, FolderKanban, UserCog,
   ListChecks, Building2, FileText, ChevronLeft, ChevronRight,
-  Menu, X, Settings, CalendarDays, LayoutTemplate
+  Menu, X, Settings, CalendarDays, LayoutTemplate, LogOut, User
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import NotificationBell from '@/components/layout/NotificationBell';
 import { useAccess } from '@/lib/AccessContext';
+import { useAuth } from '@/lib/AuthContext';
 
 const navItems = [
   { path: '/', icon: LayoutDashboard, label: 'Dashboard', slug: 'dashboard' },
@@ -25,6 +26,7 @@ export default function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const { canAccess } = useAccess();
+  const { user, logout } = useAuth();
 
   const isActive = (path) => {
     if (path === '/') return location.pathname === '/';
@@ -90,6 +92,40 @@ export default function Sidebar() {
           <Settings className={cn("w-5 h-5 flex-shrink-0", collapsed && "mx-auto")} />
           {!collapsed && <span>Configurações</span>}
         </Link>
+
+        {/* Usuário logado + logout */}
+        <div className={cn("border-t border-sidebar-border pt-2 mt-1", collapsed ? "flex flex-col items-center gap-1" : "")}>
+          <Link
+            to="/profile"
+            onClick={() => setMobileOpen(false)}
+            className={cn(
+              "flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all",
+              isActive('/profile')
+                ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                : "text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent"
+            )}
+          >
+            <div className="w-6 h-6 rounded-full bg-sidebar-primary/30 flex items-center justify-center flex-shrink-0">
+              <User className="w-3.5 h-3.5 text-sidebar-primary-foreground/80" />
+            </div>
+            {!collapsed && (
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-medium truncate">{user?.full_name || 'Meu Perfil'}</p>
+                <p className="text-[10px] text-sidebar-foreground/50 truncate">{user?.email || ''}</p>
+              </div>
+            )}
+          </Link>
+          <button
+            onClick={logout}
+            className={cn(
+              "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all w-full",
+              "text-sidebar-foreground/50 hover:text-red-400 hover:bg-sidebar-accent"
+            )}
+          >
+            <LogOut className={cn("w-4 h-4 flex-shrink-0", collapsed && "mx-auto")} />
+            {!collapsed && <span>Sair</span>}
+          </button>
+        </div>
       </div>
     </div>
   );

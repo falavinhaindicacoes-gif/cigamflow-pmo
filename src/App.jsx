@@ -17,6 +17,7 @@ import StatusReports from '@/pages/StatusReports';
 import Settings from '@/pages/Settings';
 import ConsultantSchedule from '@/pages/ConsultantSchedule';
 import ModuleTemplates from '@/pages/ModuleTemplates';
+import Profile from '@/pages/Profile';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -59,6 +60,7 @@ const AuthenticatedApp = () => {
         <Route path="/settings" element={<Settings />} />
         <Route path="/schedule" element={<ConsultantSchedule />} />
         <Route path="/module-templates" element={<ModuleTemplates />} />
+        <Route path="/profile" element={<Profile />} />
       </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>
