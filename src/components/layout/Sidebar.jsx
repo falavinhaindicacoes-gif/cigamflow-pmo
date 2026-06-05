@@ -7,22 +7,24 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import NotificationBell from '@/components/layout/NotificationBell';
+import { useAccess } from '@/lib/AccessContext';
 
 const navItems = [
-  { path: '/', icon: LayoutDashboard, label: 'Dashboard' },
-  { path: '/projects', icon: FolderKanban, label: 'Projetos' },
-  { path: '/clients', icon: Building2, label: 'Clientes' },
-  { path: '/consultants', icon: UserCog, label: 'Consultores' },
-  { path: '/activities', icon: ListChecks, label: 'Lista de Atividades' },
-  { path: '/reports', icon: FileText, label: 'Status Reports' },
-  { path: '/schedule', icon: CalendarDays, label: 'Agenda' },
-  { path: '/module-templates', icon: LayoutTemplate, label: 'Templates de Módulos' },
+  { path: '/', icon: LayoutDashboard, label: 'Dashboard', slug: 'dashboard' },
+  { path: '/projects', icon: FolderKanban, label: 'Projetos', slug: 'projetos' },
+  { path: '/clients', icon: Building2, label: 'Clientes', slug: 'clientes' },
+  { path: '/consultants', icon: UserCog, label: 'Consultores', slug: 'consultores' },
+  { path: '/activities', icon: ListChecks, label: 'Lista de Atividades', slug: 'atividades' },
+  { path: '/reports', icon: FileText, label: 'Status Reports', slug: 'reports' },
+  { path: '/schedule', icon: CalendarDays, label: 'Agenda', slug: 'agenda' },
+  { path: '/module-templates', icon: LayoutTemplate, label: 'Templates de Módulos', slug: 'templates' },
 ];
 
 export default function Sidebar() {
   const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { canAccess } = useAccess();
 
   const isActive = (path) => {
     if (path === '/') return location.pathname === '/';
@@ -52,7 +54,7 @@ export default function Sidebar() {
       </div>
 
       <nav className="flex-1 py-4 px-3 space-y-1 overflow-y-auto">
-        {navItems.map((item) => (
+        {navItems.filter(item => canAccess(item.slug)).map((item) => (
           <Link
             key={item.path}
             to={item.path}

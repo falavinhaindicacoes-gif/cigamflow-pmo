@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import PageHeader from '@/components/shared/PageHeader';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import AcessosTab from '@/components/settings/AcessosTab';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -19,9 +20,10 @@ export default function Settings() {
       <PageHeader title="Configurações" description="Gestão de empresas, usuários e parâmetros do sistema" />
 
       <Tabs defaultValue="empresas">
-        <TabsList className="bg-muted/50 p-1 h-auto">
+        <TabsList className="bg-muted/50 p-1 h-auto flex-wrap">
           <TabsTrigger value="empresas" className="text-xs">Empresas</TabsTrigger>
           <TabsTrigger value="usuarios" className="text-xs">Usuários</TabsTrigger>
+          <TabsTrigger value="acessos" className="text-xs">Controle de Acesso</TabsTrigger>
           <TabsTrigger value="parametros" className="text-xs">Parâmetros</TabsTrigger>
           <TabsTrigger value="categorias" className="text-xs">Categorias de Template</TabsTrigger>
           <TabsTrigger value="gerentes" className="text-xs">Gerentes de Projeto</TabsTrigger>
@@ -33,6 +35,10 @@ export default function Settings() {
 
         <TabsContent value="usuarios" className="mt-4">
           <UsuariosTab />
+        </TabsContent>
+
+        <TabsContent value="acessos" className="mt-4">
+          <AcessosTab />
         </TabsContent>
 
         <TabsContent value="parametros" className="mt-4">

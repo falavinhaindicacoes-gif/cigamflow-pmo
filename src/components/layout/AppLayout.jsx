@@ -1,6 +1,7 @@
 import React from 'react';
 import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
+import AccessGuard from './AccessGuard';
 
 export default function AppLayout() {
   return (
@@ -8,7 +9,9 @@ export default function AppLayout() {
       <Sidebar />
       <main className="flex-1 overflow-y-auto">
         <div className="p-4 lg:p-6 max-w-[1600px] mx-auto">
-          <Outlet />
+          <AccessGuard>
+            <Outlet />
+          </AccessGuard>
         </div>
       </main>
     </div>
