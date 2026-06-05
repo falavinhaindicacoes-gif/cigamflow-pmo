@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Plus, FileBarChart, Calendar, CheckCircle, Clock, AlertCircle, ChevronRight } from 'lucide-react';
@@ -16,7 +16,7 @@ const SAUDE_CONFIG = {
   vermelho: { label: 'Vermelho', color: 'bg-red-100 text-red-700' },
 };
 
-export default function ProjectStatusReports({ projectId }) {
+export default function ProjectStatusReports({ projectId, project }) {
   const [showCreate, setShowCreate] = useState(false);
   const [selected, setSelected] = useState(null);
   const queryClient = useQueryClient();
@@ -24,6 +24,12 @@ export default function ProjectStatusReports({ projectId }) {
   const { data: reports = [] } = useQuery({
     queryKey: ['status-reports', projectId],
     queryFn: () => base44.entities.StatusReport.filter({ project_id: projectId }, '-data_emissao'),
+  });
+
+  const { data: activities = [] } = useQuery({
+    queryKey: ['activities', projectId],
+    queryFn: () => base44.entities.Activity.filter({ project_id: projectId }),
+    enabled: !!projectId,
   });
 
   const createMutation = useMutation({
@@ -94,6 +100,8 @@ export default function ProjectStatusReports({ projectId }) {
         onOpenChange={setShowCreate}
         onSubmit={createMutation.mutate}
         isLoading={createMutation.isPending}
+        project={project}
+        activities={activities}
       />
     </div>
   );
@@ -193,14 +201,35 @@ function ReportDetail({ report, onBack }) {
   );
 }
 
-function CreateReportDialog({ open, onOpenChange, onSubmit, isLoading }) {
+function CreateReportDialog({ open, onOpenChange, onSubmit, isLoading, project, activities = [] }) {
+  // Calcula horas realizadas: project.horas_realizadas + soma das atividades concluídas
+  const horasAtividades = activities
+    .filter(a => a.status === 'concluido')
+    .reduce((sum, a) => sum + (a.sla_dias || 0), 0);
+  const horasPrevistas = project?.horas_previstas ?? '';
+  const horasRealizadas = (project?.horas_realizadas ?? 0) + horasAtividades;
+  const progressoRealizado = project?.percentual_progresso ?? '';
+
   const [form, setForm] = useState({
-    periodo_inicio: '', periodo_fim: '', data_emissao: '', gerente_projeto: '',
-    progresso_previsto: '', progresso_realizado: '', status_prazo: 'verde',
-    comentario_prazo: '', horas_previstas: '', horas_realizadas: '',
-    custo_previsto: '', custo_realizado: '', status_custo: 'verde',
+    periodo_inicio: '', periodo_fim: '', data_emissao: '',
+    gerente_projeto: project?.gerente_projeto || '',
+    progresso_realizado: progressoRealizado,
+    comentario_prazo: '',
+    horas_previstas: horasPrevistas,
+    horas_realizadas: horasRealizadas,
     entregas_concluidas: '', comentarios_gerente: '', status_aprovacao: 'rascunho',
   });
+
+  // Atualiza gerente e horas quando o projeto carrega
+  React.useEffect(() => {
+    setForm(p => ({
+      ...p,
+      gerente_projeto: project?.gerente_projeto || '',
+      progresso_realizado: project?.percentual_progresso ?? '',
+      horas_previstas: project?.horas_previstas ?? '',
+      horas_realizadas: (project?.horas_realizadas ?? 0) + horasAtividades,
+    }));
+  }, [project?.id]);
 
   const up = (f, v) => setForm(p => ({ ...p, [f]: v }));
 
@@ -215,26 +244,26 @@ function CreateReportDialog({ open, onOpenChange, onSubmit, isLoading }) {
             <div><Label>Data Emissão</Label><Input type="date" value={form.data_emissao} onChange={e => up('data_emissao', e.target.value)} /></div>
           </div>
           <div><Label>Gerente do Projeto</Label><Input value={form.gerente_projeto} onChange={e => up('gerente_projeto', e.target.value)} /></div>
-          <div className="grid grid-cols-3 gap-3">
-            <div><Label>Progresso Previsto (%)</Label><Input type="number" value={form.progresso_previsto} onChange={e => up('progresso_previsto', e.target.value)} /></div>
-            <div><Label>Progresso Realizado (%)</Label><Input type="number" value={form.progresso_realizado} onChange={e => up('progresso_realizado', e.target.value)} /></div>
-            <div><Label>Status Prazo</Label>
-              <Select value={form.status_prazo} onValueChange={v => up('status_prazo', v)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="verde">Verde</SelectItem>
-                  <SelectItem value="amarelo">Amarelo</SelectItem>
-                  <SelectItem value="vermelho">Vermelho</SelectItem>
-                </SelectContent>
-              </Select>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label>Progresso Realizado (%)</Label>
+              <Input type="number" value={form.progresso_realizado} onChange={e => up('progresso_realizado', e.target.value)} />
+              <p className="text-xs text-muted-foreground mt-1">Calculado automaticamente do projeto</p>
             </div>
+            <div></div>
           </div>
           <div><Label>Comentário de Prazo</Label><Textarea value={form.comentario_prazo} onChange={e => up('comentario_prazo', e.target.value)} rows={2} /></div>
           <div className="grid grid-cols-2 gap-3">
-            <div><Label>Horas Previstas</Label><Input type="number" value={form.horas_previstas} onChange={e => up('horas_previstas', e.target.value)} /></div>
-            <div><Label>Horas Realizadas</Label><Input type="number" value={form.horas_realizadas} onChange={e => up('horas_realizadas', e.target.value)} /></div>
-            <div><Label>Custo Previsto (R$)</Label><Input type="number" value={form.custo_previsto} onChange={e => up('custo_previsto', e.target.value)} /></div>
-            <div><Label>Custo Realizado (R$)</Label><Input type="number" value={form.custo_realizado} onChange={e => up('custo_realizado', e.target.value)} /></div>
+            <div>
+              <Label>Horas Previstas</Label>
+              <Input type="number" value={form.horas_previstas} onChange={e => up('horas_previstas', e.target.value)} />
+              <p className="text-xs text-muted-foreground mt-1">Do cadastro do projeto</p>
+            </div>
+            <div>
+              <Label>Horas Realizadas</Label>
+              <Input type="number" value={form.horas_realizadas} onChange={e => up('horas_realizadas', e.target.value)} />
+              <p className="text-xs text-muted-foreground mt-1">Projeto + atividades concluídas</p>
+            </div>
           </div>
           <div><Label>Entregas Concluídas</Label><Textarea value={form.entregas_concluidas} onChange={e => up('entregas_concluidas', e.target.value)} rows={3} /></div>
           <div><Label>Comentários do Gerente</Label><Textarea value={form.comentarios_gerente} onChange={e => up('comentarios_gerente', e.target.value)} rows={3} /></div>

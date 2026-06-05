@@ -151,7 +151,7 @@ export default function ProjectDetail() {
         </TabsContent>
 
         <TabsContent value="reports">
-          <ProjectStatusReports projectId={projectId} />
+          <ProjectStatusReports projectId={projectId} project={project} />
         </TabsContent>
 
         <TabsContent value="team">
