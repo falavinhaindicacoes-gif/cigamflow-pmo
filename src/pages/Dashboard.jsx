@@ -68,7 +68,7 @@ export default function Dashboard() {
         {/* EXECUTIVO */}
         <TabsContent value="executivo" className="space-y-6 mt-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <StatCard title="Projetos em Carteira" value={activeProjects.length} icon={FolderKanban} subtitle={`${projects.length} total na carteira`} />
+            <StatCard title="Projetos Ativos" value={activeProjects.length} icon={FolderKanban} subtitle={`${projects.length} total na carteira`} />
             <StatCard title="Projetos Pausados" value={pausedProjects.length} icon={PauseCircle} subtitle="Aguardando retomada" />
             <StatCard title="Projetos Cancelados" value={cancelledProjects.length} icon={XCircle} subtitle="Encerrados" />
             <StatCard title="Horas Previstas (Ativos)" value={`${totalHorasPrevistas}h`} icon={Clock} subtitle={`${totalHorasRealizadas}h realizadas (${progressPercentage}%)`} />
