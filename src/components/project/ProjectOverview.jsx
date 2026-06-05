@@ -1,17 +1,40 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { base44 } from '@/api/base44Client';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Progress } from '@/components/ui/progress';
-import { Save, Calendar, Users, Target, Shield } from 'lucide-react';
-import { FASES_PROJETO, STATUS_PROJETO, SAUDE_COLORS } from '@/lib/constants';
-import HealthBadge from '@/components/shared/HealthBadge';
+import { Save, Calendar, Users, Target } from 'lucide-react';
+import { FASES_PROJETO, STATUS_PROJETO } from '@/lib/constants';
 
 export default function ProjectOverview({ project, client, onUpdate }) {
   const [form, setForm] = useState({ ...project });
   const [dirty, setDirty] = useState(false);
+  const [gerenteSearch, setGerenteSearch] = useState(form.gerente_projeto || '');
+  const [showGerenteList, setShowGerenteList] = useState(false);
+  const gerenteRef = useRef(null);
+
+  const { data: gerentes = [] } = useQuery({
+    queryKey: ['project-managers'],
+    queryFn: () => base44.entities.ProjectManager.list('name', 100),
+  });
+
+  const filteredGerentes = gerentes.filter(g =>
+    g.name.toLowerCase().includes(gerenteSearch.toLowerCase())
+  );
+
+  useEffect(() => {
+    const handleClick = (e) => {
+      if (gerenteRef.current && !gerenteRef.current.contains(e.target)) {
+        setShowGerenteList(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
 
   const update = (field, value) => {
     setForm(prev => ({ ...prev, [field]: value }));
@@ -43,12 +66,6 @@ export default function ProjectOverview({ project, client, onUpdate }) {
         </div>
         <div className="bg-card border rounded-xl p-4">
           <div className="flex items-center gap-2 text-muted-foreground text-xs mb-2">
-            <Shield className="w-4 h-4" /> Risco
-          </div>
-          <div className="text-sm font-medium capitalize">{form.risco_geral || 'Baixo'}</div>
-        </div>
-        <div className="bg-card border rounded-xl p-4">
-          <div className="flex items-center gap-2 text-muted-foreground text-xs mb-2">
             <Users className="w-4 h-4" /> Horas
           </div>
           <div className="text-sm font-medium">{form.horas_realizadas || 0} / {form.horas_previstas || 0}h</div>
@@ -68,7 +85,30 @@ export default function ProjectOverview({ project, client, onUpdate }) {
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           <div><Label>Nome</Label><Input value={form.name || ''} onChange={(e) => update('name', e.target.value)} /></div>
-          <div><Label>Gerente do Projeto</Label><Input value={form.gerente_projeto || ''} onChange={(e) => update('gerente_projeto', e.target.value)} /></div>
+          <div ref={gerenteRef} className="relative">
+            <Label>Gerente do Projeto</Label>
+            <Input
+              value={gerenteSearch}
+              onChange={(e) => { setGerenteSearch(e.target.value); update('gerente_projeto', e.target.value); setShowGerenteList(true); }}
+              onFocus={() => setShowGerenteList(true)}
+              placeholder="Digite para buscar..."
+              autoComplete="off"
+            />
+            {showGerenteList && filteredGerentes.length > 0 && (
+              <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-popover border rounded-md shadow-lg max-h-48 overflow-y-auto">
+                {filteredGerentes.map(g => (
+                  <button
+                    key={g.id}
+                    type="button"
+                    className="w-full text-left px-3 py-2 text-sm hover:bg-accent"
+                    onMouseDown={(e) => { e.preventDefault(); setGerenteSearch(g.name); update('gerente_projeto', g.name); setShowGerenteList(false); }}
+                  >
+                    {g.name}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
           <div><Label>Patrocinador</Label><Input value={form.patrocinador || ''} onChange={(e) => update('patrocinador', e.target.value)} /></div>
           <div><Label>Coordenador (Cliente)</Label><Input value={form.coordenador_cliente || ''} onChange={(e) => update('coordenador_cliente', e.target.value)} /></div>
           <div><Label>Facilitador</Label><Input value={form.facilitador || ''} onChange={(e) => update('facilitador', e.target.value)} /></div>
@@ -87,17 +127,7 @@ export default function ProjectOverview({ project, client, onUpdate }) {
               <SelectContent>{STATUS_PROJETO.map(s => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}</SelectContent>
             </Select>
           </div>
-          <div>
-            <Label>Saúde</Label>
-            <Select value={form.saude} onValueChange={(v) => update('saude', v)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="verde">Verde - Saudável</SelectItem>
-                <SelectItem value="amarelo">Amarelo - Atenção</SelectItem>
-                <SelectItem value="vermelho">Vermelho - Crítico</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+
           <div>
             <Label>Progresso (%)</Label>
             <Input type="number" min={0} max={100} value={form.percentual_progresso || 0} onChange={(e) => update('percentual_progresso', parseInt(e.target.value) || 0)} />
