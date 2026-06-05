@@ -26,8 +26,21 @@ export default function ModuleTemplates() {
 
   const { data: templates = [] } = useQuery({
     queryKey: ['moduleTemplates'],
-    queryFn: () => base44.entities.ModuleTemplate.list('-created_date', 100),
+    queryFn: () => base44.entities.ModuleTemplate.list('ordem', 100),
   });
+
+  const updateTemplate = useMutation({
+    mutationFn: ({ id, data }) => base44.entities.ModuleTemplate.update(id, data),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['moduleTemplates'] }),
+  });
+
+  const handleTemplateDragEnd = (result) => {
+    if (!result.destination) return;
+    const sorted = [...templates].sort((a, b) => (a.ordem ?? 0) - (b.ordem ?? 0));
+    const [moved] = sorted.splice(result.source.index, 1);
+    sorted.splice(result.destination.index, 0, moved);
+    sorted.forEach((t, i) => { if (t.ordem !== i) updateTemplate.mutate({ id: t.id, data: { ordem: i } }); });
+  };
 
   const { data: templateModules = [] } = useQuery({
     queryKey: ['templateModules', selectedTemplate?.id],
@@ -46,7 +59,7 @@ export default function ModuleTemplates() {
     mutationFn: (d) => base44.entities.ModuleTemplate.create(d),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['moduleTemplates'] }); setShowTemplateForm(false); setEditingTemplate(null); },
   });
-  const updateTemplate = useMutation({
+  const updateTemplateForm = useMutation({
     mutationFn: ({ id, data }) => base44.entities.ModuleTemplate.update(id, data),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['moduleTemplates'] }); setShowTemplateForm(false); setEditingTemplate(null); },
   });
@@ -167,27 +180,44 @@ export default function ModuleTemplates() {
               Nenhum template criado
             </div>
           )}
-          {templates.map(t => (
-            <div
-              key={t.id}
-              onClick={() => setSelectedTemplate(t)}
-              className={`flex items-center gap-2 p-3 rounded-lg cursor-pointer border transition-colors ${selectedTemplate?.id === t.id ? 'bg-primary/10 border-primary/30 text-primary' : 'bg-card border-border hover:bg-muted'}`}
-            >
-              <LayoutTemplate className="w-4 h-4 flex-shrink-0" />
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">{t.name}</p>
-                {t.categoria && <p className="text-xs text-muted-foreground truncate">{t.categoria}</p>}
-              </div>
-              <div className="flex gap-1 flex-shrink-0" onClick={e => e.stopPropagation()}>
-                <button onClick={() => { setEditingTemplate(t); setShowTemplateForm(true); }} className="p-1 hover:text-primary rounded">
-                  <Pencil className="w-3 h-3" />
-                </button>
-                <button onClick={() => { if (confirm('Excluir este template?')) deleteTemplate.mutate(t.id); }} className="p-1 hover:text-destructive rounded">
-                  <Trash2 className="w-3 h-3" />
-                </button>
-              </div>
-            </div>
-          ))}
+          <DragDropContext onDragEnd={handleTemplateDragEnd}>
+            <Droppable droppableId="templates">
+              {(provided) => (
+                <div {...provided.droppableProps} ref={provided.innerRef} className="space-y-2">
+                  {[...templates].sort((a, b) => (a.ordem ?? 0) - (b.ordem ?? 0)).map((t, idx) => (
+                    <Draggable key={t.id} draggableId={t.id} index={idx}>
+                      {(prov) => (
+                        <div
+                          ref={prov.innerRef}
+                          {...prov.draggableProps}
+                          onClick={() => setSelectedTemplate(t)}
+                          className={`flex items-center gap-2 p-3 rounded-lg cursor-pointer border transition-colors ${selectedTemplate?.id === t.id ? 'bg-primary/10 border-primary/30 text-primary' : 'bg-card border-border hover:bg-muted'}`}
+                        >
+                          <div {...prov.dragHandleProps} className="text-muted-foreground flex-shrink-0" onClick={e => e.stopPropagation()}>
+                            <GripVertical className="w-3.5 h-3.5" />
+                          </div>
+                          <LayoutTemplate className="w-4 h-4 flex-shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium truncate">{t.name}</p>
+                            {t.categoria && <p className="text-xs text-muted-foreground truncate">{t.categoria}</p>}
+                          </div>
+                          <div className="flex gap-1 flex-shrink-0" onClick={e => e.stopPropagation()}>
+                            <button onClick={() => { setEditingTemplate(t); setShowTemplateForm(true); }} className="p-1 hover:text-primary rounded">
+                              <Pencil className="w-3 h-3" />
+                            </button>
+                            <button onClick={() => { if (confirm('Excluir este template?')) deleteTemplate.mutate(t.id); }} className="p-1 hover:text-destructive rounded">
+                              <Trash2 className="w-3 h-3" />
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </Draggable>
+                  ))}
+                  {provided.placeholder}
+                </div>
+              )}
+            </Droppable>
+          </DragDropContext>
         </div>
 
         {/* Module editor */}
@@ -332,7 +362,7 @@ export default function ModuleTemplates() {
         onClose={() => { setShowTemplateForm(false); setEditingTemplate(null); }}
         initial={editingTemplate}
         onSubmit={(data) => {
-          if (editingTemplate) updateTemplate.mutate({ id: editingTemplate.id, data });
+          if (editingTemplate) updateTemplateForm.mutate({ id: editingTemplate.id, data });
           else createTemplate.mutate(data);
         }}
       />

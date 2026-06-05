@@ -20,6 +20,10 @@
     "ativo": {
       "type": "boolean",
       "default": true
+    },
+    "ordem": {
+      "type": "number",
+      "default": 0
     }
   },
   "required": [
