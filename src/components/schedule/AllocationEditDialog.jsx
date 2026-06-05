@@ -213,7 +213,11 @@ export default function AllocationEditDialog({ allocation, consultant, projects,
 
   const [rightTab, setRightTab] = useState('anotacoes');
   const [projectId, setProjectId] = useState(allocation.project_id || '');
-  const [tipoAgenda, setTipoAgenda] = useState(allocation.tipo_agenda || 'projeto_modulos');
+  const [tipoAgenda, setTipoAgenda] = useState(
+    ['projeto_modulos', 'atividades_avulsas', 'outros'].includes(allocation.tipo_agenda)
+      ? allocation.tipo_agenda
+      : 'projeto_modulos'
+  );
   const [statusFaturamento, setStatusFaturamento] = useState(allocation.status_faturamento || 'a_confirmar');
   const [obs, setObs] = useState(allocation.observacoes || '');
   const [selectedFreeIds, setSelectedFreeIds] = useState([]);
@@ -227,7 +231,11 @@ export default function AllocationEditDialog({ allocation, consultant, projects,
   const deallocatedIdsRef = useRef([]);
   // Refs para os campos de formulário (evita closure stale no saveAllocation)
   const projectIdRef = useRef(allocation.project_id || '');
-  const tipoAgendaRef = useRef(allocation.tipo_agenda || 'projeto_modulos');
+  const tipoAgendaRef = useRef(
+    ['projeto_modulos', 'atividades_avulsas', 'outros'].includes(allocation.tipo_agenda)
+      ? allocation.tipo_agenda
+      : 'projeto_modulos'
+  );
   const statusFaturamentoRef = useRef(allocation.status_faturamento || 'a_confirmar');
   const obsRef = useRef(allocation.observacoes || '');
 
