@@ -44,7 +44,14 @@ export default function ActivityFormDialog({ open, onOpenChange, activity, proje
     else setForm(EMPTY);
   }, [activity]);
 
-  const update = (f, v) => setForm(p => ({ ...p, [f]: v }));
+  const update = (f, v) => {
+    if (f === 'project_id') {
+      const proj = projects.find(p => p.id === v);
+      setForm(p => ({ ...p, project_id: v, fase_projeto: proj?.fase_atual || p.fase_projeto }));
+    } else {
+      setForm(p => ({ ...p, [f]: v }));
+    }
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
