@@ -100,14 +100,13 @@ export default function ScheduleFinanceDash({ allocations, clients, projects }) 
     return d >= r.start && d <= r.end;
   };
 
-  // IMPORTANT: nao_faturado is excluded from financial totals — only counted visually
+  // nao_faturado is excluded from a_confirmar and total (previsão financeira)
   const calcTotals = (allocs, r) => {
     const filtered = allocs.filter(a => inRange(a, r));
     const faturado = filtered.filter(a => a.status_faturamento === 'faturado').reduce((s, a) => s + calcValor(a), 0);
     const a_confirmar = filtered.filter(a => a.status_faturamento === 'a_confirmar').reduce((s, a) => s + calcValor(a), 0);
-    const nao_faturado_count = filtered.filter(a => a.status_faturamento === 'nao_faturado').length; // only count, no value
-    const comercial_count = nao_faturado_count; // visually shown
-    return { faturado, a_confirmar, nao_faturado_count, total: faturado + a_confirmar };
+    const nao_faturado = filtered.filter(a => a.status_faturamento === 'nao_faturado').reduce((s, a) => s + calcValor(a), 0);
+    return { faturado, a_confirmar, nao_faturado, total: faturado + a_confirmar };
   };
 
   const totals = useMemo(() => calcTotals(allocations, range), [allocations, range, clients, projects]);
@@ -124,7 +123,7 @@ export default function ScheduleFinanceDash({ allocations, clients, projects }) 
         name: format(month, 'MMM/yy', { locale: ptBR }),
         Faturado: Math.round(t.faturado),
         'A Confirmar': Math.round(t.a_confirmar),
-        'Acomp. Comercial': t.nao_faturado_count,
+        'Não Faturado': Math.round(t.nao_faturado),
       };
     });
   }, [allocations, clients, projects]);
@@ -190,18 +189,8 @@ export default function ScheduleFinanceDash({ allocations, clients, projects }) 
           delta={totals.a_confirmar} previous={prevTotals.a_confirmar} />
         <StatBox icon={TrendingUp} label="Previsão Financeira" value={fmt(totals.total)} color="bg-primary"
           delta={totals.total} previous={prevTotals.total} />
-        <div className="bg-card border rounded-xl p-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 bg-slate-500">
-              <TrendingUp className="w-5 h-5 text-white" />
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Acomp. Comercial</p>
-              <p className="text-lg font-bold">{totals.nao_faturado_count} turnos</p>
-            </div>
-          </div>
-          <p className="text-[10px] text-muted-foreground mt-1">Não contabilizado financeiramente</p>
-        </div>
+        <StatBox icon={TrendingDown} label="Não Faturado" value={fmt(totals.nao_faturado)} color="bg-slate-500"
+          delta={totals.nao_faturado} previous={prevTotals.nao_faturado} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
@@ -213,11 +202,11 @@ export default function ScheduleFinanceDash({ allocations, clients, projects }) 
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
               <XAxis dataKey="name" tick={{ fontSize: 10 }} />
               <YAxis tick={{ fontSize: 10 }} tickFormatter={v => `R$${(v/1000).toFixed(0)}k`} />
-              <Tooltip formatter={(v, name) => name === 'Acomp. Comercial' ? [`${v} turnos`, name] : [fmt(v), name]} />
+              <Tooltip formatter={(v) => fmt(v)} />
               <Legend wrapperStyle={{ fontSize: 11 }} />
               <Bar dataKey="Faturado" fill="#16a34a" radius={[3,3,0,0]} />
               <Bar dataKey="A Confirmar" fill="#facc15" radius={[3,3,0,0]} />
-              <Bar dataKey="Acomp. Comercial" fill="#94a3b8" radius={[3,3,0,0]} />
+              <Bar dataKey="Não Faturado" fill="#94a3b8" radius={[3,3,0,0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -276,7 +265,7 @@ export default function ScheduleFinanceDash({ allocations, clients, projects }) 
       )}
 
       <p className="text-xs text-muted-foreground text-center">
-        * Cálculo: {HORAS_POR_TURNO}h/turno × valor/hora do cliente. Acompanhamentos comerciais (não faturados) aparecem apenas visualmente nos gráficos.
+        * Cálculo: {HORAS_POR_TURNO}h/turno × valor/hora do cliente. Agendas "Não Faturado" não são contabilizadas na Previsão Financeira nem em A Confirmar.
       </p>
     </div>
   );
