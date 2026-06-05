@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { Plus, FileBarChart, Calendar, CheckCircle, Clock, AlertCircle, ChevronRight } from 'lucide-react';
+import { Plus, FileBarChart, Calendar, CheckCircle, Clock, XCircle, ChevronRight, Layers } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
@@ -32,6 +32,12 @@ export default function ProjectStatusReports({ projectId, project }) {
     enabled: !!projectId,
   });
 
+  const { data: modules = [] } = useQuery({
+    queryKey: ['projectModules', projectId],
+    queryFn: () => base44.entities.ProjectModule.filter({ project_id: projectId }, 'ordem'),
+    enabled: !!projectId,
+  });
+
   const createMutation = useMutation({
     mutationFn: (data) => base44.entities.StatusReport.create({ ...data, project_id: projectId }),
     onSuccess: () => {
@@ -41,7 +47,7 @@ export default function ProjectStatusReports({ projectId, project }) {
   });
 
   if (selected) {
-    return <ReportDetail report={selected} onBack={() => setSelected(null)} />;
+    return <ReportDetail report={selected} onBack={() => setSelected(null)} projectId={projectId} modules={modules} />;
   }
 
   return (
@@ -107,7 +113,63 @@ export default function ProjectStatusReports({ projectId, project }) {
   );
 }
 
-function ReportDetail({ report, onBack }) {
+const MODULE_STATUS_CONFIG = {
+  concluido:    { label: 'Concluído',    color: 'bg-green-100 text-green-700',  icon: CheckCircle },
+  em_andamento: { label: 'Em andamento', color: 'bg-blue-100 text-blue-700',    icon: Clock },
+  nao_iniciado: { label: 'Não iniciado', color: 'bg-gray-100 text-gray-600',    icon: Clock },
+  cancelado:    { label: 'Cancelado',    color: 'bg-red-100 text-red-600',      icon: XCircle },
+};
+
+function ModulesPanel({ modules }) {
+  if (!modules || modules.length === 0) return null;
+
+  const concluidos = modules.filter(m => m.status === 'concluido');
+  const pendentes  = modules.filter(m => m.status !== 'concluido' && m.status !== 'cancelado');
+  const cancelados = modules.filter(m => m.status === 'cancelado');
+  const pct = modules.length > 0 ? Math.round((concluidos.length / modules.length) * 100) : 0;
+
+  return (
+    <div className="bg-card border rounded-xl p-4 space-y-4">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Layers className="w-4 h-4 text-primary" />
+          <h4 className="font-semibold text-sm">Módulos do Projeto</h4>
+        </div>
+        <span className="text-xs font-medium text-muted-foreground">{concluidos.length}/{modules.length} concluídos ({pct}%)</span>
+      </div>
+
+      {/* Barra de progresso */}
+      <div className="w-full bg-gray-100 rounded-full h-2">
+        <div className="bg-green-500 h-2 rounded-full transition-all" style={{ width: `${pct}%` }} />
+      </div>
+
+      <div className="grid grid-cols-1 gap-1.5 max-h-64 overflow-y-auto">
+        {modules.map(m => {
+          const cfg = MODULE_STATUS_CONFIG[m.status] || MODULE_STATUS_CONFIG.nao_iniciado;
+          const Icon = cfg.icon;
+          return (
+            <div key={m.id} className="flex items-center justify-between gap-2 py-1.5 px-2 rounded-lg hover:bg-muted/40">
+              <div className="flex items-center gap-2 min-w-0">
+                <Icon className={`w-3.5 h-3.5 flex-shrink-0 ${m.status === 'concluido' ? 'text-green-600' : m.status === 'cancelado' ? 'text-red-500' : 'text-blue-500'}`} />
+                <span className={`text-sm truncate ${m.status === 'cancelado' ? 'line-through text-muted-foreground' : ''}`}>{m.name}</span>
+              </div>
+              <span className={`text-[11px] px-2 py-0.5 rounded-full font-medium flex-shrink-0 ${cfg.color}`}>{cfg.label}</span>
+            </div>
+          );
+        })}
+      </div>
+
+      {pendentes.length > 0 && (
+        <div className="text-xs text-muted-foreground border-t pt-2">
+          <span className="font-medium text-foreground">{pendentes.length} pendente(s):</span>{' '}
+          {pendentes.map(m => m.name).join(', ')}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ReportDetail({ report, onBack, projectId, modules = [] }) {
   const saude = SAUDE_CONFIG[report.status_prazo] || SAUDE_CONFIG.verde;
   return (
     <div className="space-y-6">
@@ -151,6 +213,7 @@ function ReportDetail({ report, onBack }) {
           </div>
         </div>
       </div>
+      <ModulesPanel modules={modules} />
       {report.entregas_concluidas && (
         <div className="bg-card border rounded-xl p-4">
           <h4 className="font-semibold text-sm mb-2">Entregas Concluídas</h4>
