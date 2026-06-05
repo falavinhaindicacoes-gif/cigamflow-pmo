@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { Plus, FileBarChart, Calendar, CheckCircle, Clock, XCircle, ChevronRight, Layers } from 'lucide-react';
+import { Plus, FileBarChart, Calendar, CheckCircle, Clock, XCircle, ChevronRight, Layers, User, TrendingUp } from 'lucide-react';
+import { RadialBarChart, RadialBar, PieChart, Pie, Cell, Tooltip, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
@@ -170,50 +171,136 @@ function ModulesPanel({ modules }) {
 }
 
 function ReportDetail({ report, onBack, projectId, modules = [] }) {
-  const saude = SAUDE_CONFIG[report.status_prazo] || SAUDE_CONFIG.verde;
+  const progresso = report.progresso_realizado ?? 0;
+  const horasPrev = report.horas_previstas ?? 0;
+  const horasReal = report.horas_realizadas ?? 0;
+
+  const progressoData = [{ value: progresso }, { value: 100 - progresso }];
+  const horasData = [
+    { name: 'Previstas', value: horasPrev, fill: '#e2e8f0' },
+    { name: 'Realizadas', value: horasReal, fill: '#6366f1' },
+  ];
+
+  const concluidos = modules.filter(m => m.status === 'concluido').length;
+  const emAndamento = modules.filter(m => m.status === 'em_andamento').length;
+  const naoIniciados = modules.filter(m => m.status === 'nao_iniciado').length;
+  const cancelados = modules.filter(m => m.status === 'cancelado').length;
+
+  const modulePieData = [
+    { name: 'Concluído', value: concluidos, fill: '#22c55e' },
+    { name: 'Em andamento', value: emAndamento, fill: '#6366f1' },
+    { name: 'Não iniciado', value: naoIniciados, fill: '#e2e8f0' },
+    { name: 'Cancelado', value: cancelados, fill: '#f87171' },
+  ].filter(d => d.value > 0);
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <button onClick={onBack} className="text-sm text-primary flex items-center gap-1 hover:underline">← Voltar aos reports</button>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-card border rounded-xl p-4 space-y-3">
-          <h4 className="font-semibold text-sm">Indicadores de Prazo</h4>
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-muted-foreground">Progresso Previsto</span>
-            <span className="font-medium">{report.progresso_previsto ?? 0}%</span>
+
+      {/* Info header */}
+      <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
+        {report.gerente_projeto && (
+          <span className="flex items-center gap-1"><User className="w-3.5 h-3.5" /> {report.gerente_projeto}</span>
+        )}
+        {report.data_emissao && (
+          <span className="flex items-center gap-1"><Calendar className="w-3.5 h-3.5" /> Emitido em {format(new Date(report.data_emissao), 'dd/MM/yyyy')}</span>
+        )}
+        {(report.periodo_inicio || report.periodo_fim) && (
+          <span className="flex items-center gap-1">
+            Período: {report.periodo_inicio ? format(new Date(report.periodo_inicio), 'dd/MM/yyyy') : '-'} a {report.periodo_fim ? format(new Date(report.periodo_fim), 'dd/MM/yyyy') : '-'}
+          </span>
+        )}
+      </div>
+
+      {/* Row 1: gauges */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+
+        {/* Progresso realizado — donut */}
+        <div className="bg-card border rounded-xl p-4 flex flex-col items-center gap-2">
+          <div className="flex items-center gap-2 self-start w-full">
+            <TrendingUp className="w-4 h-4 text-primary" />
+            <span className="text-sm font-semibold">Progresso Realizado</span>
           </div>
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-muted-foreground">Progresso Realizado</span>
-            <span className="font-medium">{report.progresso_realizado ?? 0}%</span>
+          <div className="relative w-36 h-36">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie data={progressoData} cx="50%" cy="50%" innerRadius={46} outerRadius={62} startAngle={90} endAngle={-270} dataKey="value" strokeWidth={0}>
+                  <Cell fill="#6366f1" />
+                  <Cell fill="#e2e8f0" />
+                </Pie>
+              </PieChart>
+            </ResponsiveContainer>
+            <div className="absolute inset-0 flex flex-col items-center justify-center">
+              <span className="text-2xl font-bold">{progresso}%</span>
+            </div>
           </div>
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-muted-foreground">Status Prazo</span>
-            <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${saude.color}`}>{saude.label}</span>
-          </div>
-          {report.comentario_prazo && <p className="text-xs text-muted-foreground border-t pt-2">{report.comentario_prazo}</p>}
+          {report.comentario_prazo && <p className="text-xs text-muted-foreground text-center">{report.comentario_prazo}</p>}
         </div>
-        <div className="bg-card border rounded-xl p-4 space-y-3">
-          <h4 className="font-semibold text-sm">Indicadores de Custo</h4>
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-muted-foreground">Horas Previstas</span>
-            <span className="font-medium">{report.horas_previstas ?? 0}h</span>
+
+        {/* Horas — barras */}
+        <div className="bg-card border rounded-xl p-4 flex flex-col gap-3">
+          <div className="flex items-center gap-2">
+            <Clock className="w-4 h-4 text-primary" />
+            <span className="text-sm font-semibold">Horas</span>
           </div>
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-muted-foreground">Horas Realizadas</span>
-            <span className="font-medium">{report.horas_realizadas ?? 0}h</span>
+          <ResponsiveContainer width="100%" height={110}>
+            <BarChart data={horasData} barSize={32} layout="vertical">
+              <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+              <XAxis type="number" tick={{ fontSize: 11 }} />
+              <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} width={68} />
+              <Tooltip formatter={(v) => `${v}h`} />
+              <Bar dataKey="value" radius={[0, 4, 4, 0]}>
+                {horasData.map((d, i) => <Cell key={i} fill={d.fill} />)}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+          <div className="flex justify-between text-xs text-muted-foreground border-t pt-2">
+            <span>Previstas: <strong>{horasPrev}h</strong></span>
+            <span>Realizadas: <strong>{horasReal}h</strong></span>
           </div>
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-muted-foreground">Custo Realizado</span>
-            <span className="font-medium">R$ {(report.custo_realizado ?? 0).toLocaleString('pt-BR')}</span>
+        </div>
+
+        {/* Módulos — pizza */}
+        <div className="bg-card border rounded-xl p-4 flex flex-col gap-2">
+          <div className="flex items-center gap-2">
+            <Layers className="w-4 h-4 text-primary" />
+            <span className="text-sm font-semibold">Módulos</span>
           </div>
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-muted-foreground">Status Custo</span>
-            <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${(SAUDE_CONFIG[report.status_custo] || SAUDE_CONFIG.verde).color}`}>
-              {(SAUDE_CONFIG[report.status_custo] || SAUDE_CONFIG.verde).label}
-            </span>
-          </div>
+          {modulePieData.length > 0 ? (
+            <>
+              <div className="relative mx-auto w-28 h-28">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie data={modulePieData} cx="50%" cy="50%" innerRadius={34} outerRadius={52} dataKey="value" strokeWidth={0}>
+                      {modulePieData.map((d, i) => <Cell key={i} fill={d.fill} />)}
+                    </Pie>
+                    <Tooltip />
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                  <span className="text-lg font-bold">{modules.length}</span>
+                  <span className="text-[10px] text-muted-foreground">total</span>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-1 text-xs">
+                {modulePieData.map((d, i) => (
+                  <div key={i} className="flex items-center gap-1.5">
+                    <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: d.fill }} />
+                    <span className="text-muted-foreground truncate">{d.name}: <strong>{d.value}</strong></span>
+                  </div>
+                ))}
+              </div>
+            </>
+          ) : (
+            <p className="text-xs text-muted-foreground text-center py-6">Nenhum módulo</p>
+          )}
         </div>
       </div>
+
+      {/* Row 2: lista de módulos */}
       <ModulesPanel modules={modules} />
+
+      {/* Entregas, riscos, atividades, comentários */}
       {report.entregas_concluidas && (
         <div className="bg-card border rounded-xl p-4">
           <h4 className="font-semibold text-sm mb-2">Entregas Concluídas</h4>
@@ -228,9 +315,7 @@ function ReportDetail({ report, onBack, projectId, modules = [] }) {
               <div key={i} className="bg-red-50 border border-red-100 rounded-lg p-3">
                 <p className="text-sm font-medium">{r.descricao}</p>
                 <div className="flex gap-3 mt-1 text-xs text-muted-foreground">
-                  <span>Prob: {r.probabilidade}</span>
-                  <span>Impacto: {r.impacto}</span>
-                  <span>Resp: {r.responsavel}</span>
+                  <span>Prob: {r.probabilidade}</span><span>Impacto: {r.impacto}</span><span>Resp: {r.responsavel}</span>
                 </div>
                 {r.plano_acao && <p className="text-xs mt-1 text-muted-foreground">Plano: {r.plano_acao}</p>}
               </div>
@@ -245,10 +330,7 @@ function ReportDetail({ report, onBack, projectId, modules = [] }) {
             {report.proximas_atividades.map((a, i) => (
               <div key={i} className="flex items-center justify-between text-sm border-b pb-2 last:border-0">
                 <span>{a.atividade}</span>
-                <div className="flex gap-3 text-xs text-muted-foreground">
-                  <span>{a.responsavel}</span>
-                  <span>{a.data_entrega}</span>
-                </div>
+                <div className="flex gap-3 text-xs text-muted-foreground"><span>{a.responsavel}</span><span>{a.data_entrega}</span></div>
               </div>
             ))}
           </div>
