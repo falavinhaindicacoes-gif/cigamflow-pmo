@@ -8,9 +8,17 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { User, Mail, Shield, Save, LogOut } from 'lucide-react';
 
 export default function Profile() {
-  const { user, logout, checkUserAuth } = useAuth();
+  const { user, logout, checkUserAuth, isLoadingAuth } = useAuth();
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+
+  if (isLoadingAuth) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="w-8 h-8 border-4 border-slate-200 border-t-slate-800 rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   const roleLabel = {
     admin: 'Administrador',
