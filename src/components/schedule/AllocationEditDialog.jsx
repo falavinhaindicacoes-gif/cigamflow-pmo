@@ -81,15 +81,15 @@ function ProjectModulesSelector({ projectId, allocatedIds, excludeIds = [], sele
                   {isExpanded && (
                     <div className="pb-1">
                       {modItems.map(item => (
-                        <label key={item.id} className="flex items-start gap-2.5 px-5 py-1.5 hover:bg-muted/20 cursor-pointer">
-                          <Checkbox checked={selectedFreeIds.includes(item.id)} onCheckedChange={() => onToggleFree(item.id)} className="mt-0.5" />
+                        <div key={item.id} className="flex items-start gap-2.5 px-5 py-1.5 hover:bg-muted/20 cursor-pointer" onClick={() => onToggleFree(item.id)}>
+                          <Checkbox checked={selectedFreeIds.includes(item.id)} onCheckedChange={() => {}} className="mt-0.5 pointer-events-none" />
                           <span className="text-xs leading-tight flex items-center gap-1.5">
                             {item.name}
                             {item.status === 'aguardando_confirmacao' && (
                               <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 font-medium whitespace-nowrap">aguard. confirmação</span>
                             )}
                           </span>
-                        </label>
+                        </div>
                       ))}
                     </div>
                   )}
@@ -124,14 +124,14 @@ function ProjectModulesSelector({ projectId, allocatedIds, excludeIds = [], sele
                   {isExpanded && (
                     <div className="pb-1">
                       {modItems.map(item => (
-                        <label key={item.id} className="flex items-start gap-2.5 px-5 py-1.5 hover:bg-orange-50/40 cursor-pointer">
+                        <div key={item.id} className="flex items-start gap-2.5 px-5 py-1.5 hover:bg-orange-50/40 cursor-pointer" onClick={() => onToggleAllocated(item.id)}>
                           <Checkbox
                             checked={selectedAllocatedIds.includes(item.id)}
-                            onCheckedChange={() => onToggleAllocated(item.id)}
-                            className="mt-0.5 border-orange-400 data-[state=checked]:bg-orange-500 data-[state=checked]:border-orange-500"
+                            onCheckedChange={() => {}}
+                            className="mt-0.5 border-orange-400 data-[state=checked]:bg-orange-500 data-[state=checked]:border-orange-500 pointer-events-none"
                           />
                           <span className="text-xs leading-tight text-orange-700">{item.name}</span>
-                        </label>
+                        </div>
                       ))}
                     </div>
                   )}
@@ -175,10 +175,10 @@ function AvulsaActivitiesSelector({ projectId, allocatedIds, excludeIds = [], se
         ) : (
           <div className="max-h-40 overflow-y-auto divide-y">
             {freeActivities.map(a => (
-              <label key={a.id} className="flex items-start gap-2.5 px-3 py-1.5 hover:bg-muted/20 cursor-pointer">
-                <Checkbox checked={selectedFreeIds.includes(a.id)} onCheckedChange={() => onToggleFree(a.id)} className="mt-0.5" />
+              <div key={a.id} className="flex items-start gap-2.5 px-3 py-1.5 hover:bg-muted/20 cursor-pointer" onClick={() => onToggleFree(a.id)}>
+                <Checkbox checked={selectedFreeIds.includes(a.id)} onCheckedChange={() => {}} className="mt-0.5 pointer-events-none" />
                 <span className="text-xs leading-tight">{a.titulo}</span>
-              </label>
+              </div>
             ))}
           </div>
         )}
@@ -192,14 +192,14 @@ function AvulsaActivitiesSelector({ projectId, allocatedIds, excludeIds = [], se
           </div>
           <div className="max-h-40 overflow-y-auto divide-y divide-orange-100">
             {allocatedActivities.map(a => (
-              <label key={a.id} className="flex items-start gap-2.5 px-3 py-1.5 hover:bg-orange-50/40 cursor-pointer">
+              <div key={a.id} className="flex items-start gap-2.5 px-3 py-1.5 hover:bg-orange-50/40 cursor-pointer" onClick={() => onToggleAllocated(a.id)}>
                 <Checkbox
                   checked={selectedAllocatedIds.includes(a.id)}
-                  onCheckedChange={() => onToggleAllocated(a.id)}
-                  className="mt-0.5 border-orange-400 data-[state=checked]:bg-orange-500 data-[state=checked]:border-orange-500"
+                  onCheckedChange={() => {}}
+                  className="mt-0.5 border-orange-400 data-[state=checked]:bg-orange-500 data-[state=checked]:border-orange-500 pointer-events-none"
                 />
                 <span className="text-xs leading-tight text-orange-700">{a.titulo}</span>
-              </label>
+              </div>
             ))}
           </div>
         </div>
@@ -363,7 +363,7 @@ export default function AllocationEditDialog({ allocation, consultant, projects,
     if (selectedFreeIds.length === 0) return;
     setIsPending(true);
     try {
-      if (tipoAgenda === 'projeto_modulos') {
+      if (tipoAgendaRef.current === 'projeto_modulos') {
         const idsToAllocate = [...selectedFreeIds];
         const newIds = [...moduleItemIdsRef.current, ...idsToAllocate];
         await Promise.all(idsToAllocate.map(id => base44.entities.ModuleItem.update(id, { status: 'em_andamento' })));
@@ -372,7 +372,7 @@ export default function AllocationEditDialog({ allocation, consultant, projects,
         setModuleItemIds(newIds);
         setSelectedFreeIds([]);
         await syncProjectAfterModuleItemChange(idsToAllocate);
-      } else if (tipoAgenda === 'atividades_avulsas') {
+      } else if (tipoAgendaRef.current === 'atividades_avulsas') {
         const idsToAllocate = [...selectedFreeIds];
         const newIds = [...activityIdsRef.current, ...idsToAllocate];
         await Promise.all(idsToAllocate.map(id => base44.entities.Activity.update(id, { status: 'em_andamento' })));
