@@ -182,6 +182,14 @@ export default function AllocationCellDialog({ cell, projects, clients, onClose,
 
   const createMutation = useMutation({
     mutationFn: async (data) => {
+      // Marcar ModuleItems como em_andamento
+      if (data.module_item_ids?.length > 0) {
+        await Promise.all(data.module_item_ids.map(id => base44.entities.ModuleItem.update(id, { status: 'em_andamento' })));
+      }
+      // Marcar Activities como em_andamento
+      if (data.activity_ids?.length > 0) {
+        await Promise.all(data.activity_ids.map(id => base44.entities.Activity.update(id, { status: 'em_andamento' })));
+      }
       const allocation = await base44.entities.Allocation.create(data);
       if (nota.trim()) {
         await base44.entities.AllocationHistory.create({
@@ -194,6 +202,8 @@ export default function AllocationCellDialog({ cell, projects, clients, onClose,
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['allocations-schedule'] });
+      queryClient.invalidateQueries({ queryKey: ['moduleItems', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['activities-avulsas', projectId] });
       onSaved();
     },
     onError: (err) => {
@@ -201,6 +211,14 @@ export default function AllocationCellDialog({ cell, projects, clients, onClose,
       alert('Erro ao salvar alocação: ' + (err?.message || 'Tente novamente'));
     },
   });
+
+  const hasSelected = tipoAgenda === 'projeto_modulos'
+    ? selectedModuleItemIds.length > 0
+    : selectedActivityIds.length > 0;
+
+  const selectedCount = tipoAgenda === 'projeto_modulos'
+    ? selectedModuleItemIds.length
+    : selectedActivityIds.length;
 
   const handleSave = () => {
     if (tipoAgenda === 'outros' && !obs.trim()) return;
@@ -330,11 +348,25 @@ export default function AllocationCellDialog({ cell, projects, clients, onClose,
         </div>
 
         {/* Footer */}
-        <div className="border-t px-6 py-3 flex gap-2">
-          <Button variant="outline" className="flex-1" onClick={onClose} disabled={isPending}>Cancelar</Button>
-          <Button className="flex-1" onClick={handleSave} disabled={isPending}>
-            {isPending ? 'Salvando...' : 'Salvar'}
-          </Button>
+        <div className="border-t px-6 py-3 flex flex-col gap-2">
+          {hasSelected && (
+            <div className="flex gap-2 w-full">
+              <Button className="flex-1" onClick={handleSave} disabled={isPending}>
+                {isPending ? 'Salvando...' : `Alocar e Salvar (${selectedCount} item${selectedCount > 1 ? 's' : ''})`}
+              </Button>
+            </div>
+          )}
+          <div className="flex gap-2 w-full">
+            <Button variant="outline" className="flex-1" onClick={onClose} disabled={isPending}>Cancelar</Button>
+            <Button
+              variant={hasSelected ? 'outline' : 'default'}
+              className="flex-1"
+              onClick={handleSave}
+              disabled={isPending}
+            >
+              {isPending ? 'Salvando...' : 'Salvar sem alocar'}
+            </Button>
+          </div>
         </div>
       </DialogContent>
     </Dialog>
