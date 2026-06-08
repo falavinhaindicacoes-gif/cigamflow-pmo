@@ -82,7 +82,7 @@ function ProjectModulesSelector({ projectId, allocatedIds, excludeIds = [], sele
                     <div className="pb-1">
                       {modItems.map(item => (
                         <div key={item.id} className="flex items-start gap-2.5 px-5 py-1.5 hover:bg-muted/20 cursor-pointer" onClick={() => onToggleFree(item.id)}>
-                          <Checkbox checked={selectedFreeIds.includes(item.id)} onCheckedChange={() => {}} className="mt-0.5 pointer-events-none" />
+                          <Checkbox checked={selectedFreeIds.includes(item.id)} onCheckedChange={() => {}} onClick={(e) => e.stopPropagation()} className="mt-0.5" />
                           <span className="text-xs leading-tight flex items-center gap-1.5">
                             {item.name}
                             {item.status === 'aguardando_confirmacao' && (
@@ -128,7 +128,8 @@ function ProjectModulesSelector({ projectId, allocatedIds, excludeIds = [], sele
                           <Checkbox
                             checked={selectedAllocatedIds.includes(item.id)}
                             onCheckedChange={() => {}}
-                            className="mt-0.5 border-orange-400 data-[state=checked]:bg-orange-500 data-[state=checked]:border-orange-500 pointer-events-none"
+                            onClick={(e) => e.stopPropagation()}
+                            className="mt-0.5 border-orange-400 data-[state=checked]:bg-orange-500 data-[state=checked]:border-orange-500"
                           />
                           <span className="text-xs leading-tight text-orange-700">{item.name}</span>
                         </div>
@@ -176,7 +177,7 @@ function AvulsaActivitiesSelector({ projectId, allocatedIds, excludeIds = [], se
           <div className="max-h-40 overflow-y-auto divide-y">
             {freeActivities.map(a => (
               <div key={a.id} className="flex items-start gap-2.5 px-3 py-1.5 hover:bg-muted/20 cursor-pointer" onClick={() => onToggleFree(a.id)}>
-                <Checkbox checked={selectedFreeIds.includes(a.id)} onCheckedChange={() => {}} className="mt-0.5 pointer-events-none" />
+                <Checkbox checked={selectedFreeIds.includes(a.id)} onCheckedChange={() => {}} onClick={(e) => e.stopPropagation()} className="mt-0.5" />
                 <span className="text-xs leading-tight">{a.titulo}</span>
               </div>
             ))}
@@ -196,7 +197,8 @@ function AvulsaActivitiesSelector({ projectId, allocatedIds, excludeIds = [], se
                 <Checkbox
                   checked={selectedAllocatedIds.includes(a.id)}
                   onCheckedChange={() => {}}
-                  className="mt-0.5 border-orange-400 data-[state=checked]:bg-orange-500 data-[state=checked]:border-orange-500 pointer-events-none"
+                  onClick={(e) => e.stopPropagation()}
+                  className="mt-0.5 border-orange-400 data-[state=checked]:bg-orange-500 data-[state=checked]:border-orange-500"
                 />
                 <span className="text-xs leading-tight text-orange-700">{a.titulo}</span>
               </div>

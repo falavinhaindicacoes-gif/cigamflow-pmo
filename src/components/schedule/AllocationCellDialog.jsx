@@ -73,7 +73,7 @@ function ProjectModulesSelector({ projectId, selectedItems, onToggle }) {
                 <div className="pb-1">
                   {modItems.map(item => (
                     <div key={item.id} className="flex items-start gap-2.5 px-5 py-1.5 hover:bg-muted/20 cursor-pointer" onClick={() => onToggle(item.id)}>
-                      <Checkbox checked={selectedItems.includes(item.id)} onCheckedChange={() => {}} className="mt-0.5 pointer-events-none" />
+                      <Checkbox checked={selectedItems.includes(item.id)} onCheckedChange={() => {}} onClick={(e) => e.stopPropagation()} className="mt-0.5" />
                       <span className="text-xs leading-tight flex items-center gap-1.5">
                         {item.name}
                         {item.status === 'aguardando_confirmacao' && (
@@ -122,7 +122,7 @@ function AvulsaActivitiesSelector({ projectId, selectedIds, onToggle }) {
       <div className="max-h-48 overflow-y-auto divide-y">
         {open.map(a => (
           <div key={a.id} className="flex items-start gap-2.5 px-3 py-1.5 hover:bg-muted/20 cursor-pointer" onClick={() => onToggle(a.id)}>
-            <Checkbox checked={selectedIds.includes(a.id)} onCheckedChange={() => {}} className="mt-0.5 pointer-events-none" />
+            <Checkbox checked={selectedIds.includes(a.id)} onCheckedChange={() => {}} onClick={(e) => e.stopPropagation()} className="mt-0.5" />
             <span className="text-xs leading-tight">{a.titulo}</span>
           </div>
         ))}
