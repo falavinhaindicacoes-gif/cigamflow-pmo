@@ -183,7 +183,6 @@ export default function AllocationCellDialog({ cell, projects, clients, onClose,
   const createMutation = useMutation({
     mutationFn: async (data) => {
       const allocation = await base44.entities.Allocation.create(data);
-      // Se há nota inicial, salva como acompanhamento
       if (nota.trim()) {
         await base44.entities.AllocationHistory.create({
           allocation_id: allocation.id,
@@ -197,17 +196,22 @@ export default function AllocationCellDialog({ cell, projects, clients, onClose,
       queryClient.invalidateQueries({ queryKey: ['allocations-schedule'] });
       onSaved();
     },
+    onError: (err) => {
+      console.error('[AllocationCellDialog] erro ao salvar:', err?.message || err);
+      alert('Erro ao salvar alocação: ' + (err?.message || 'Tente novamente'));
+    },
   });
 
   const handleSave = () => {
     if (tipoAgenda === 'outros' && !obs.trim()) return;
     const selectedProject = projects.find(p => p.id === projectId);
+    const dateStr = format(dateObj, 'yyyy-MM-dd');
     createMutation.mutate({
       consultant_id: consultant.id,
       company_id: consultant.company_id || undefined,
       project_id: projectId || undefined,
       client_id: selectedProject?.client_id || undefined,
-      data: format(date, 'yyyy-MM-dd'),
+      data: dateStr,
       periodo_do_dia: turno,
       tipo_agenda: tipoAgenda,
       status_faturamento: statusFaturamento,
@@ -218,7 +222,8 @@ export default function AllocationCellDialog({ cell, projects, clients, onClose,
     });
   };
 
-  const allocationDate = new Date(format(date, 'yyyy-MM-dd') + 'T12:00:00');
+  const dateObj = date instanceof Date ? date : new Date(date);
+  const allocationDate = new Date(format(dateObj, 'yyyy-MM-dd') + 'T12:00:00');
   const isPending = createMutation.isPending;
 
   return (
@@ -232,7 +237,7 @@ export default function AllocationCellDialog({ cell, projects, clients, onClose,
             <h2 className="text-base font-semibold">Nova Alocação</h2>
             <div className="space-y-0.5 text-sm text-muted-foreground mt-0.5">
               <p><span className="font-medium text-foreground">{consultant.name}</span></p>
-              <p>{format(allocationDate, "EEEE, dd/MM/yyyy", { locale: ptBR })} — {TURNO_LABELS[turno]}</p>
+              <p>{format(dateObj, "EEEE, dd/MM/yyyy", { locale: ptBR })} — {TURNO_LABELS[turno]}</p>
             </div>
           </div>
         </div>
