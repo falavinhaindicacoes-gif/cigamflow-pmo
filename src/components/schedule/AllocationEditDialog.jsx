@@ -82,7 +82,7 @@ function ProjectModulesSelector({ projectId, allocatedIds, excludeIds = [], sele
                     <div className="pb-1">
                       {modItems.map(item => (
                         <div key={item.id} className="flex items-start gap-2.5 px-5 py-1.5 hover:bg-muted/20 cursor-pointer" onClick={() => onToggleFree(item.id)}>
-                          <Checkbox checked={selectedFreeIds.includes(item.id)} onCheckedChange={() => {}} onClick={(e) => e.stopPropagation()} className="mt-0.5" />
+                          <div className={`mt-0.5 w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 ${selectedFreeIds.includes(item.id) ? 'bg-primary border-primary' : 'border-input bg-background'}`}>{selectedFreeIds.includes(item.id) && <svg className="w-2.5 h-2.5 text-white" viewBox="0 0 10 10" fill="none"><path d="M2 5l2.5 2.5L8 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}</div>
                           <span className="text-xs leading-tight flex items-center gap-1.5">
                             {item.name}
                             {item.status === 'aguardando_confirmacao' && (
@@ -125,12 +125,7 @@ function ProjectModulesSelector({ projectId, allocatedIds, excludeIds = [], sele
                     <div className="pb-1">
                       {modItems.map(item => (
                         <div key={item.id} className="flex items-start gap-2.5 px-5 py-1.5 hover:bg-orange-50/40 cursor-pointer" onClick={() => onToggleAllocated(item.id)}>
-                          <Checkbox
-                            checked={selectedAllocatedIds.includes(item.id)}
-                            onCheckedChange={() => {}}
-                            onClick={(e) => e.stopPropagation()}
-                            className="mt-0.5 border-orange-400 data-[state=checked]:bg-orange-500 data-[state=checked]:border-orange-500"
-                          />
+                          <div className={`mt-0.5 w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 ${selectedAllocatedIds.includes(item.id) ? 'bg-orange-500 border-orange-500' : 'border-orange-300 bg-background'}`}>{selectedAllocatedIds.includes(item.id) && <svg className="w-2.5 h-2.5 text-white" viewBox="0 0 10 10" fill="none"><path d="M2 5l2.5 2.5L8 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}</div>
                           <span className="text-xs leading-tight text-orange-700">{item.name}</span>
                         </div>
                       ))}
@@ -177,7 +172,7 @@ function AvulsaActivitiesSelector({ projectId, allocatedIds, excludeIds = [], se
           <div className="max-h-40 overflow-y-auto divide-y">
             {freeActivities.map(a => (
               <div key={a.id} className="flex items-start gap-2.5 px-3 py-1.5 hover:bg-muted/20 cursor-pointer" onClick={() => onToggleFree(a.id)}>
-                <Checkbox checked={selectedFreeIds.includes(a.id)} onCheckedChange={() => {}} onClick={(e) => e.stopPropagation()} className="mt-0.5" />
+                <div className={`mt-0.5 w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 ${selectedFreeIds.includes(a.id) ? 'bg-primary border-primary' : 'border-input bg-background'}`}>{selectedFreeIds.includes(a.id) && <svg className="w-2.5 h-2.5 text-white" viewBox="0 0 10 10" fill="none"><path d="M2 5l2.5 2.5L8 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}</div>
                 <span className="text-xs leading-tight">{a.titulo}</span>
               </div>
             ))}
@@ -194,12 +189,7 @@ function AvulsaActivitiesSelector({ projectId, allocatedIds, excludeIds = [], se
           <div className="max-h-40 overflow-y-auto divide-y divide-orange-100">
             {allocatedActivities.map(a => (
               <div key={a.id} className="flex items-start gap-2.5 px-3 py-1.5 hover:bg-orange-50/40 cursor-pointer" onClick={() => onToggleAllocated(a.id)}>
-                <Checkbox
-                  checked={selectedAllocatedIds.includes(a.id)}
-                  onCheckedChange={() => {}}
-                  onClick={(e) => e.stopPropagation()}
-                  className="mt-0.5 border-orange-400 data-[state=checked]:bg-orange-500 data-[state=checked]:border-orange-500"
-                />
+                <div className={`mt-0.5 w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 ${selectedAllocatedIds.includes(a.id) ? 'bg-orange-500 border-orange-500' : 'border-orange-300 bg-background'}`}>{selectedAllocatedIds.includes(a.id) && <svg className="w-2.5 h-2.5 text-white" viewBox="0 0 10 10" fill="none"><path d="M2 5l2.5 2.5L8 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}</div>
                 <span className="text-xs leading-tight text-orange-700">{a.titulo}</span>
               </div>
             ))}

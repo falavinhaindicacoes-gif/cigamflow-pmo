@@ -73,7 +73,9 @@ function ProjectModulesSelector({ projectId, selectedItems, onToggle }) {
                 <div className="pb-1">
                   {modItems.map(item => (
                     <div key={item.id} className="flex items-start gap-2.5 px-5 py-1.5 hover:bg-muted/20 cursor-pointer" onClick={() => onToggle(item.id)}>
-                      <Checkbox checked={selectedItems.includes(item.id)} onCheckedChange={() => {}} onClick={(e) => e.stopPropagation()} className="mt-0.5" />
+                      <div className={`mt-0.5 w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 ${selectedItems.includes(item.id) ? 'bg-primary border-primary' : 'border-input bg-background'}`}>
+                        {selectedItems.includes(item.id) && <svg className="w-2.5 h-2.5 text-white" viewBox="0 0 10 10" fill="none"><path d="M2 5l2.5 2.5L8 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                      </div>
                       <span className="text-xs leading-tight flex items-center gap-1.5">
                         {item.name}
                         {item.status === 'aguardando_confirmacao' && (
@@ -122,7 +124,9 @@ function AvulsaActivitiesSelector({ projectId, selectedIds, onToggle }) {
       <div className="max-h-48 overflow-y-auto divide-y">
         {open.map(a => (
           <div key={a.id} className="flex items-start gap-2.5 px-3 py-1.5 hover:bg-muted/20 cursor-pointer" onClick={() => onToggle(a.id)}>
-            <Checkbox checked={selectedIds.includes(a.id)} onCheckedChange={() => {}} onClick={(e) => e.stopPropagation()} className="mt-0.5" />
+            <div className={`mt-0.5 w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 ${selectedIds.includes(a.id) ? 'bg-primary border-primary' : 'border-input bg-background'}`}>
+              {selectedIds.includes(a.id) && <svg className="w-2.5 h-2.5 text-white" viewBox="0 0 10 10" fill="none"><path d="M2 5l2.5 2.5L8 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+            </div>
             <span className="text-xs leading-tight">{a.titulo}</span>
           </div>
         ))}
