@@ -496,6 +496,19 @@ export default function AllocationEditDialog({ allocation, consultant, projects,
     if (!confirm('Excluir esta alocação?')) return;
     setIsPending(true);
     try {
+      // Reverter status dos ModuleItems vinculados
+      const moduleIds = moduleItemIdsRef.current;
+      if (moduleIds.length > 0) {
+        await Promise.all(moduleIds.map(id => base44.entities.ModuleItem.update(id, { status: 'nao_iniciado' })));
+        if (projectIdRef.current) {
+          await syncProjectAfterModuleItemChange(moduleIds);
+        }
+      }
+      // Reverter status das Activities vinculadas
+      const actIds = activityIdsRef.current;
+      if (actIds.length > 0) {
+        await Promise.all(actIds.map(id => base44.entities.Activity.update(id, { status: 'aberto' })));
+      }
       await base44.entities.Allocation.delete(allocation.id);
       queryClient.invalidateQueries({ queryKey: ['allocations-schedule'] });
       onClose();
