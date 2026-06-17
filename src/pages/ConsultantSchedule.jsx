@@ -98,10 +98,13 @@ export default function ConsultantSchedule() {
     const { source, destination, draggableId } = result;
     if (!destination || source.droppableId === destination.droppableId) return;
     const [destConsultantId, destDate, destTurno] = destination.droppableId.split('|');
-    const destOccupied = allocations.find(a =>
-      a.id !== draggableId && a.data === destDate && a.periodo_do_dia === destTurno && a.consultant_id === destConsultantId
+    // Só bloqueia se a mesma alocação (mesmo projeto) já existe na célula destino
+    const dragged = allocations.find(a => a.id === draggableId);
+    const duplicate = dragged && allocations.find(a =>
+      a.id !== draggableId && a.data === destDate && a.periodo_do_dia === destTurno &&
+      a.consultant_id === destConsultantId && a.project_id === dragged.project_id
     );
-    if (destOccupied) return;
+    if (duplicate) return;
     updateMutation.mutate({ id: draggableId, data: { data: destDate, periodo_do_dia: destTurno } });
   };
 

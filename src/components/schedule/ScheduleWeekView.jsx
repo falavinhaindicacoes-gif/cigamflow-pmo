@@ -25,9 +25,9 @@ export default function ScheduleWeekView({ weekBase, allocations, consultants, o
   const days = getWeekDays(weekBase);
   const activeConsultants = consultants.filter((c) => c.status === 'ativo');
 
-  const getCell = useCallback((consultantId, date, turno) => {
+  const getCells = useCallback((consultantId, date, turno) => {
     const dateStr = format(date, 'yyyy-MM-dd');
-    return allocations.find(a => a.consultant_id === consultantId && a.data === dateStr && a.periodo_do_dia === turno);
+    return allocations.filter(a => a.consultant_id === consultantId && a.data === dateStr && a.periodo_do_dia === turno);
   }, [allocations]);
 
   return (
@@ -61,55 +61,57 @@ export default function ScheduleWeekView({ weekBase, allocations, consultants, o
                   )}
                   <td className="border border-border px-2 py-1 bg-muted/40 font-medium text-muted-foreground text-[10px] whitespace-nowrap">{turno.label}</td>
                   {days.map((day) => {
-                    const dateStr = format(day, 'yyyy-MM-dd');
-                    const droppableId = `${consultant.id}|${dateStr}|${turno.key}`;
-                    const allocation = getCell(consultant.id, day, turno.key);
-                    return (
-                      <td key={dateStr} className="border border-border p-0 h-14 align-top">
-                        <Droppable droppableId={droppableId}>
-                          {(provided, snapshot) => (
-                            <div
-                              ref={provided.innerRef}
-                              {...provided.droppableProps}
-                              className={`w-full h-full min-h-[56px] relative ${snapshot.isDraggingOver ? 'bg-blue-50' : ''}`}
-                              onClick={() => !allocation && onCellClick({ consultant, date: day, turno: turno.key })}
-                            >
-                              {allocation ? (
-                                <Draggable draggableId={allocation.id} index={0}>
-                                  {(drag, dragSnapshot) => {
-                                    const cfg = STATUS_CONFIG[allocation.status_faturamento] || STATUS_CONFIG.a_confirmar;
-                                    return (
-                                      <div
-                                        ref={drag.innerRef}
-                                        {...drag.draggableProps}
-                                        {...drag.dragHandleProps}
-                                        className={`absolute inset-0.5 rounded text-[10px] flex flex-col justify-between p-1 cursor-pointer ${cfg.bg} ${cfg.text} ${dragSnapshot.isDragging ? 'shadow-lg opacity-90 cursor-grabbing' : ''}`}
-                                                                                onClick={(e) => { e.stopPropagation(); if (onAllocationClick) onAllocationClick(allocation); else onCycleStatus(allocation); }}
-                                      >
-                                        <span className="font-semibold leading-tight line-clamp-2">
-                                          {getProjectName(allocation.project_id) || allocation.observacoes || '—'}
-                                        </span>
-                                        <div className="flex items-center justify-between mt-1">
-                                          <span className="opacity-75">{cfg.label}</span>
-                                          <button onClick={(e) => { e.stopPropagation(); onDelete(allocation.id); }} className="opacity-60 hover:opacity-100">
-                                            <X className="w-3 h-3" />
-                                          </button>
-                                        </div>
-                                      </div>
-                                    );
-                                  }}
-                                </Draggable>
-                              ) : (
-                                <div className="w-full h-full flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity cursor-pointer">
-                                  <Plus className="w-4 h-4 text-muted-foreground" />
-                                </div>
-                              )}
-                              {provided.placeholder}
-                            </div>
-                          )}
-                        </Droppable>
-                      </td>
-                    );
+                   const dateStr = format(day, 'yyyy-MM-dd');
+                   const droppableId = `${consultant.id}|${dateStr}|${turno.key}`;
+                   const cellAllocations = getCells(consultant.id, day, turno.key);
+                   return (
+                     <td key={dateStr} className="border border-border p-0 align-top">
+                       <Droppable droppableId={droppableId}>
+                         {(provided, snapshot) => (
+                           <div
+                             ref={provided.innerRef}
+                             {...provided.droppableProps}
+                             className={`w-full min-h-[56px] flex flex-col gap-0.5 p-0.5 ${snapshot.isDraggingOver ? 'bg-blue-50' : ''}`}
+                           >
+                             {cellAllocations.map((allocation, idx) => (
+                               <Draggable key={allocation.id} draggableId={allocation.id} index={idx}>
+                                 {(drag, dragSnapshot) => {
+                                   const cfg = STATUS_CONFIG[allocation.status_faturamento] || STATUS_CONFIG.a_confirmar;
+                                   return (
+                                     <div
+                                       ref={drag.innerRef}
+                                       {...drag.draggableProps}
+                                       {...drag.dragHandleProps}
+                                       className={`rounded text-[10px] flex flex-col justify-between p-1 cursor-pointer ${cfg.bg} ${cfg.text} ${dragSnapshot.isDragging ? 'shadow-lg opacity-90 cursor-grabbing' : ''}`}
+                                       onClick={(e) => { e.stopPropagation(); if (onAllocationClick) onAllocationClick(allocation); else onCycleStatus(allocation); }}
+                                     >
+                                       <span className="font-semibold leading-tight line-clamp-2">
+                                         {getProjectName(allocation.project_id) || allocation.observacoes || '—'}
+                                       </span>
+                                       <div className="flex items-center justify-between mt-1">
+                                         <span className="opacity-75">{cfg.label}</span>
+                                         <button onClick={(e) => { e.stopPropagation(); onDelete(allocation.id); }} className="opacity-60 hover:opacity-100">
+                                           <X className="w-3 h-3" />
+                                         </button>
+                                       </div>
+                                     </div>
+                                   );
+                                 }}
+                               </Draggable>
+                             ))}
+                             {/* Botão + sempre visível para adicionar mais */}
+                             <div
+                               className="flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity cursor-pointer py-1"
+                               onClick={() => onCellClick({ consultant, date: day, turno: turno.key })}
+                             >
+                               <Plus className="w-3.5 h-3.5 text-muted-foreground" />
+                             </div>
+                             {provided.placeholder}
+                           </div>
+                         )}
+                       </Droppable>
+                     </td>
+                   );
                   })}
                 </tr>
               ))

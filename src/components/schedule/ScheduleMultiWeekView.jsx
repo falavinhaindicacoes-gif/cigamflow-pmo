@@ -40,9 +40,9 @@ export default function ScheduleMultiWeekView({ rangeStart, rangeEnd, allocation
     }
   });
 
-  const getCell = (consultantId, date, turno) => {
+  const getCells = (consultantId, date, turno) => {
     const dateStr = format(date, 'yyyy-MM-dd');
-    return allocations.find(a => a.consultant_id === consultantId && a.data === dateStr && a.periodo_do_dia === turno);
+    return allocations.filter(a => a.consultant_id === consultantId && a.data === dateStr && a.periodo_do_dia === turno);
   };
 
   return (
@@ -84,31 +84,39 @@ export default function ScheduleMultiWeekView({ rangeStart, rangeEnd, allocation
                 )}
                 <td className="border border-border px-1 py-0.5 bg-muted/40 font-bold text-muted-foreground text-center">{turno.label}</td>
                 {days.map(day => {
-                  const allocation = getCell(consultant.id, day, turno.key);
-                  const isWeekend = [0, 6].includes(day.getDay());
-                  const cfg = allocation ? (STATUS_CONFIG[allocation.status_faturamento] || STATUS_CONFIG.a_confirmar) : null;
-                  return (
-                    <td
-                      key={format(day, 'yyyy-MM-dd')}
-                      className={`border border-border h-8 p-0 text-center align-middle ${isWeekend ? 'bg-muted/30' : ''}`}
-                      onClick={() => !allocation && !isWeekend && onCellClick({ consultant, date: day, turno: turno.key })}
-                    >
-                      {allocation ? (
-                        <div
-                          className={`w-full h-full flex items-center justify-center cursor-pointer text-[9px] font-bold ${cfg.bg} ${cfg.text}`}
-                          onClick={e => { e.stopPropagation(); onCycleStatus(allocation); }}
-                          title={`${getProjectName(allocation.project_id)} — ${allocation.status_faturamento}`}
-                        >
-                          ●
-                        </div>
-                      ) : !isWeekend ? (
-                        <div className="w-full h-full flex items-center justify-center opacity-0 hover:opacity-100 cursor-pointer">
-                          <Plus className="w-3 h-3 text-muted-foreground" />
-                        </div>
-                      ) : null}
-                    </td>
-                  );
-                })}
+                   const cellAllocations = getCells(consultant.id, day, turno.key);
+                   const isWeekend = [0, 6].includes(day.getDay());
+                   return (
+                     <td
+                       key={format(day, 'yyyy-MM-dd')}
+                       className={`border border-border p-0 align-top ${isWeekend ? 'bg-muted/30' : ''}`}
+                       onClick={() => !isWeekend && onCellClick({ consultant, date: day, turno: turno.key })}
+                     >
+                       {!isWeekend && (
+                         <div className="flex flex-col gap-px p-px min-h-[32px]">
+                           {cellAllocations.map(allocation => {
+                             const cfg = STATUS_CONFIG[allocation.status_faturamento] || STATUS_CONFIG.a_confirmar;
+                             return (
+                               <div
+                                 key={allocation.id}
+                                 className={`flex items-center justify-center cursor-pointer text-[9px] font-bold rounded-sm h-3 ${cfg.bg} ${cfg.text}`}
+                                 onClick={e => { e.stopPropagation(); onCycleStatus(allocation); }}
+                                 title={`${getProjectName(allocation.project_id)} — ${allocation.status_faturamento}`}
+                               >
+                                 ●
+                               </div>
+                             );
+                           })}
+                           {cellAllocations.length === 0 && (
+                             <div className="w-full h-full flex items-center justify-center opacity-0 hover:opacity-100 cursor-pointer min-h-[28px]">
+                               <Plus className="w-3 h-3 text-muted-foreground" />
+                             </div>
+                           )}
+                         </div>
+                       )}
+                     </td>
+                   );
+                 })}
               </tr>
             ))
           ))}
