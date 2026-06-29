@@ -35,9 +35,12 @@ export default function Projects() {
     staleTime: 60_000,
   });
 
+  // Subscribe apenas para criar/excluir — updates de campos são capturados pelo staleTime normal
   useEffect(() => {
     const unsubscribe = base44.entities.Project.subscribe((event) => {
-      queryClient.invalidateQueries({ queryKey: ['projects'] });
+      if (event.type === 'create' || event.type === 'delete') {
+        queryClient.invalidateQueries({ queryKey: ['projects'] });
+      }
     });
     return unsubscribe;
   }, [queryClient]);

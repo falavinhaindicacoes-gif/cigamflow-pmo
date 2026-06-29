@@ -257,21 +257,11 @@ export default function AllocationEditDialog({ allocation, consultant, projects,
   };
 
   const toggleFreeItem = (id) => {
-    console.log('[toggleFreeItem] id:', id, 'current:', selectedFreeIds);
-    setSelectedFreeIds(prev => {
-      const newVal = prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id];
-      console.log('[toggleFreeItem] new:', newVal);
-      return newVal;
-    });
+    setSelectedFreeIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
   };
 
   const toggleAllocatedItem = (id) => {
-    console.log('[toggleAllocatedItem] id:', id, 'current:', selectedAllocatedIds);
-    setSelectedAllocatedIds(prev => {
-      const newVal = prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id];
-      console.log('[toggleAllocatedItem] new:', newVal);
-      return newVal;
-    });
+    setSelectedAllocatedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
   };
 
   const getClientLabel = (p) => {
@@ -295,14 +285,7 @@ export default function AllocationEditDialog({ allocation, consultant, projects,
       activity_ids: activityIdsRef.current,
       ...extraData,
     };
-    console.log('[saveAllocation] saving:', JSON.stringify(data));
-    try {
-      const result = await base44.entities.Allocation.update(allocation.id, data);
-      console.log('[saveAllocation] SUCCESS, result:', result);
-    } catch (err) {
-      console.error('[saveAllocation] FAILED:', err?.message || err);
-      throw err;
-    }
+    await base44.entities.Allocation.update(allocation.id, data);
     queryClient.invalidateQueries({ queryKey: ['allocations-schedule'] });
   };
 
@@ -351,7 +334,6 @@ export default function AllocationEditDialog({ allocation, consultant, projects,
 
   // ── ALOCAR: move itens de "disponível" para "alocados nesta agenda" ──
   const handleAllocar = async () => {
-    console.log('[handleAllocar] selectedFreeIds:', selectedFreeIds, 'tipoAgenda:', tipoAgendaRef.current);
     if (selectedFreeIds.length === 0) return;
     setIsPending(true);
     try {
@@ -418,7 +400,6 @@ export default function AllocationEditDialog({ allocation, consultant, projects,
 
   // ── CONCLUIR ALOCADOS: marca como "aguardando_confirmacao" e remove da agenda ──
   const handleConcluirAlocados = async () => {
-    console.log('[handleConcluirAlocados] selectedAllocatedIds:', selectedAllocatedIds, 'moduleItemIdsRef:', moduleItemIdsRef.current);
     if (selectedAllocatedIds.length === 0) return;
     setIsPending(true);
     try {

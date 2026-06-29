@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useCallback } from 'react';
 import { format, startOfWeek, endOfWeek, addDays, startOfMonth, endOfMonth, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { RadialBarChart, RadialBar, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid, Legend, Cell } from 'recharts';
@@ -77,21 +77,26 @@ export default function ScheduleOccupancyDash({ allocations, consultants, projec
   const diasUteis = useMemo(() => countDiasUteis(range.start, range.end), [range]);
   const turnosMaximos = diasUteis * TURNOS_DIA;
 
-  const getProjectName = (projectId) => {
-    const p = projects.find(x => x.id === projectId);
+  // Mapas de lookup O(1) para evitar find() linear dentro de loops
+  const projectMap = useMemo(() => new Map(projects.map(p => [p.id, p])), [projects]);
+  const clientMap = useMemo(() => new Map(clients.map(c => [c.id, c])), [clients]);
+  const getProjectName = useCallback((projectId) => {
+    const p = projectMap.get(projectId);
     if (!p) return 'Sem projeto';
-    const c = clients.find(x => x.id === p.client_id);
+    const c = clientMap.get(p.client_id);
     return c ? (c.nome_fantasia || c.razao_social) : p.name;
-  };
+  }, [projectMap, clientMap]);
 
   // Alocações no período por consultor
   const consultorData = useMemo(() => {
     const activeConsultants = consultants.filter(c => c.status === 'ativo');
+    const startMs = range.start.getTime();
+    const endMs = range.end.getTime();
     return activeConsultants.map(c => {
       const allocs = allocations.filter(a => {
         if (a.consultant_id !== c.id || !a.data) return false;
-        const d = parseISO(a.data);
-        return d >= range.start && d <= range.end;
+        const d = parseISO(a.data).getTime();
+        return d >= startMs && d <= endMs;
       });
       const turnos = allocs.length;
       const pct = turnosMaximos > 0 ? Math.round((turnos / turnosMaximos) * 100) : 0;
@@ -118,7 +123,7 @@ export default function ScheduleOccupancyDash({ allocations, consultants, projec
         porProjeto: Object.values(porProjeto).sort((a, b) => b.turnos - a.turnos),
       };
     }).sort((a, b) => b.pct - a.pct);
-  }, [consultants, allocations, range, turnosMaximos, projects, clients]);
+  }, [consultants, allocations, range, turnosMaximos, getProjectName]);
 
   const sobrecarregados = consultorData.filter(c => c.pct > 100);
   const atencao = consultorData.filter(c => c.pct > 80 && c.pct <= 100);

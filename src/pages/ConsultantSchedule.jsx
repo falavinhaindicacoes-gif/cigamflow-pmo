@@ -73,10 +73,10 @@ export default function ConsultantSchedule() {
   const [dialogCell, setDialogCell] = useState(null);
   const [editAllocation, setEditAllocation] = useState(null);
 
-  const { data: consultants = [] } = useQuery({ queryKey: ['consultants'], queryFn: () => base44.entities.Consultant.list() });
-  const { data: allocations = [] } = useQuery({ queryKey: ['allocations-schedule'], queryFn: () => base44.entities.Allocation.list() });
-  const { data: projects = [] } = useQuery({ queryKey: ['projects'], queryFn: () => base44.entities.Project.list() });
-  const { data: clients = [] } = useQuery({ queryKey: ['clients'], queryFn: () => base44.entities.Client.list() });
+  const { data: consultants = [] } = useQuery({ queryKey: ['consultants'], queryFn: () => base44.entities.Consultant.list('-name', 200), staleTime: 60_000 });
+  const { data: allocations = [] } = useQuery({ queryKey: ['allocations-schedule'], queryFn: () => base44.entities.Allocation.list('-data', 2000), staleTime: 15_000 });
+  const { data: projects = [] } = useQuery({ queryKey: ['projects'], queryFn: () => base44.entities.Project.list('-created_date', 200), staleTime: 60_000 });
+  const { data: clients = [] } = useQuery({ queryKey: ['clients'], queryFn: () => base44.entities.Client.list('-created_date', 200), staleTime: 60_000 });
 
   const updateMutation = useMutation({
     mutationFn: ({ id, data }) => base44.entities.Allocation.update(id, data),

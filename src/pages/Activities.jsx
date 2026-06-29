@@ -24,14 +24,17 @@ export default function Activities() {
   const { data: activities = [], isLoading } = useQuery({
     queryKey: ['activities'],
     queryFn: () => base44.entities.Activity.list('-created_date', 500),
+    staleTime: 30_000,
   });
   const { data: projects = [] } = useQuery({
     queryKey: ['projects'],
     queryFn: () => base44.entities.Project.list('-created_date', 100),
+    staleTime: 60_000,
   });
   const { data: consultants = [] } = useQuery({
     queryKey: ['consultants'],
-    queryFn: () => base44.entities.Consultant.list('-created_date', 100),
+    queryFn: () => base44.entities.Consultant.list('-name', 100),
+    staleTime: 60_000,
   });
 
   const createMutation = useMutation({
