@@ -41,6 +41,19 @@ function ProjectModulesSelector({ projectId, allocatedIds, excludeIds = [], sele
     enabled: !!projectId,
   });
 
+  const { data: allSubItems = [] } = useQuery({
+    queryKey: ['moduleSubItems-all', projectId],
+    queryFn: () => base44.entities.ModuleSubItem.filter({ project_id: projectId }, 'ordem', 2000),
+    enabled: !!projectId,
+  });
+
+  const getSubInfo = (itemId) => {
+    const subs = allSubItems.filter(s => s.module_item_id === itemId);
+    if (subs.length === 0) return null;
+    const done = subs.filter(s => s.status === 'concluido').length;
+    return { total: subs.length, done };
+  };
+
   const freeItems = items.filter(i =>
     !['concluido', 'cancelado'].includes(i.status) &&
     !allocatedIds.includes(i.id) &&
@@ -88,6 +101,11 @@ function ProjectModulesSelector({ projectId, allocatedIds, excludeIds = [], sele
                             {item.status === 'aguardando_confirmacao' && (
                               <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 font-medium whitespace-nowrap">aguard. confirmação</span>
                             )}
+                            {getSubInfo(item.id) && (
+                              <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium whitespace-nowrap ${getSubInfo(item.id).done === getSubInfo(item.id).total ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
+                                {getSubInfo(item.id).done}/{getSubInfo(item.id).total} sub-itens
+                              </span>
+                            )}
                           </span>
                         </div>
                       ))}
@@ -126,7 +144,14 @@ function ProjectModulesSelector({ projectId, allocatedIds, excludeIds = [], sele
                       {modItems.map(item => (
                         <div key={item.id} className="flex items-start gap-2.5 px-5 py-1.5 hover:bg-orange-50/40 cursor-pointer" onClick={() => onToggleAllocated(item.id)}>
                           <div className={`mt-0.5 w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 ${selectedAllocatedIds.includes(item.id) ? 'bg-orange-500 border-orange-500' : 'border-orange-300 bg-background'}`}>{selectedAllocatedIds.includes(item.id) && <svg className="w-2.5 h-2.5 text-white" viewBox="0 0 10 10" fill="none"><path d="M2 5l2.5 2.5L8 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}</div>
-                          <span className="text-xs leading-tight text-orange-700">{item.name}</span>
+                          <span className="text-xs leading-tight text-orange-700 flex items-center gap-1.5">
+                            {item.name}
+                            {getSubInfo(item.id) && (
+                              <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium whitespace-nowrap ${getSubInfo(item.id).done === getSubInfo(item.id).total ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
+                                {getSubInfo(item.id).done}/{getSubInfo(item.id).total} sub-itens
+                              </span>
+                            )}
+                          </span>
                         </div>
                       ))}
                     </div>
@@ -404,7 +429,18 @@ export default function AllocationEditDialog({ allocation, consultant, projects,
     setIsPending(true);
     try {
       if (tipoAgenda === 'projeto_modulos') {
-        const idsToConclude = [...selectedAllocatedIds];
+        const allSelectedIds = [...selectedAllocatedIds];
+        // Não concluir itens que possuem sub-itens ainda pendentes
+        const subItems = await base44.entities.ModuleSubItem.filter({ project_id: projectId }, 'ordem', 2000);
+        const blockedIds = allSelectedIds.filter(id => {
+          const subs = subItems.filter(s => s.module_item_id === id);
+          return subs.length > 0 && subs.some(s => s.status !== 'concluido');
+        });
+        const idsToConclude = allSelectedIds.filter(id => !blockedIds.includes(id));
+        if (blockedIds.length > 0) {
+          alert(`${blockedIds.length} item(ns) possuem sub-itens pendentes e não foram concluídos. Finalize os sub-itens na tela do projeto primeiro.`);
+        }
+        if (idsToConclude.length === 0) { setSelectedAllocatedIds(blockedIds); return; }
         const remaining = moduleItemIdsRef.current.filter(id => !idsToConclude.includes(id));
         await Promise.all(idsToConclude.map(id => base44.entities.ModuleItem.update(id, { status: 'concluido' })));
         const statusAfterRemoval = remaining.length > 0 ? 'ativa' : 'encerrada';
@@ -412,7 +448,7 @@ export default function AllocationEditDialog({ allocation, consultant, projects,
         await registrarHistorico('conclusao', `${idsToConclude.length} item(ns) concluído(s) e sincronizados:`, idsToConclude, 'modulo');
         setModuleItemIds(remaining);
         addConcludedIds(idsToConclude);
-        setSelectedAllocatedIds([]);
+        setSelectedAllocatedIds(blockedIds);
         await syncProjectAfterModuleItemChange(idsToConclude);
       } else {
         const idsToConclude = [...selectedAllocatedIds];
@@ -443,8 +479,18 @@ export default function AllocationEditDialog({ allocation, consultant, projects,
     setIsPending(true);
     try {
       if (tipoAgenda === 'projeto_modulos') {
-        await Promise.all(selectedFreeIds.map(id => base44.entities.ModuleItem.update(id, { status: 'concluido' })));
-        await syncProjectAfterModuleItemChange(selectedFreeIds);
+        const subItems = await base44.entities.ModuleSubItem.filter({ project_id: projectId }, 'ordem', 2000);
+        const blockedIds = selectedFreeIds.filter(id => {
+          const subs = subItems.filter(s => s.module_item_id === id);
+          return subs.length > 0 && subs.some(s => s.status !== 'concluido');
+        });
+        const idsToConclude = selectedFreeIds.filter(id => !blockedIds.includes(id));
+        if (blockedIds.length > 0) {
+          alert(`${blockedIds.length} item(ns) possuem sub-itens pendentes e não foram concluídos. Finalize os sub-itens na tela do projeto primeiro.`);
+        }
+        if (idsToConclude.length === 0) return;
+        await Promise.all(idsToConclude.map(id => base44.entities.ModuleItem.update(id, { status: 'concluido' })));
+        await syncProjectAfterModuleItemChange(idsToConclude);
       } else if (tipoAgenda === 'atividades_avulsas') {
         await Promise.all(selectedFreeIds.map(id => base44.entities.Activity.update(id, {
           status: 'concluido',
