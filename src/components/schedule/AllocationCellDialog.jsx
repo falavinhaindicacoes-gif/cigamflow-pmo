@@ -8,8 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Checkbox } from '@/components/ui/checkbox';
-import { ChevronDown, ChevronRight, Layers, ListChecks } from 'lucide-react';
+import { ChevronDown, ChevronRight, Layers, ListChecks, Check } from 'lucide-react';
 
 const TURNO_LABELS = { manha: 'Manhã', tarde: 'Tarde', noite: 'Noite' };
 
@@ -18,6 +17,52 @@ const TIPO_AGENDA_OPTIONS = [
   { value: 'atividades_avulsas', label: 'Lista de Atividades' },
   { value: 'outros', label: 'Outro' },
 ];
+
+/* ── Seletor múltiplo de Projeto/Cliente ── */
+function ProjectMultiSelect({ projects, clients, selectedIds, onToggle }) {
+  const [open, setOpen] = useState(false);
+
+  const getLabel = (p) => {
+    const c = clients.find(x => x.id === p.client_id);
+    return c ? `${c.nome_fantasia || c.razao_social} — ${p.name}` : p.name;
+  };
+
+  const selectedLabels = projects.filter(p => selectedIds.includes(p.id)).map(getLabel);
+
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        className="flex h-9 w-full items-center justify-between rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm"
+      >
+        <span className={`truncate text-left ${selectedLabels.length === 0 ? 'text-muted-foreground' : ''}`}>
+          {selectedLabels.length === 0 ? 'Selecione um ou mais projetos (opcional)' : selectedLabels.join(', ')}
+        </span>
+        <ChevronDown className="h-4 w-4 opacity-50 flex-shrink-0" />
+      </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
+          <div className="absolute z-20 mt-1 w-full max-h-60 overflow-y-auto rounded-md border bg-popover shadow-md p-1">
+            {projects.map(p => (
+              <div
+                key={p.id}
+                onClick={() => onToggle(p.id)}
+                className="flex items-center gap-2 px-2 py-1.5 text-sm rounded-sm hover:bg-accent cursor-pointer"
+              >
+                <div className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 ${selectedIds.includes(p.id) ? 'bg-primary border-primary' : 'border-input'}`}>
+                  {selectedIds.includes(p.id) && <Check className="w-3 h-3 text-white" />}
+                </div>
+                <span className="truncate">{getLabel(p)}</span>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
 
 /* ── Módulos/itens pendentes do projeto ── */
 function ProjectModulesSelector({ projectId, selectedItems, onToggle }) {
@@ -158,7 +203,7 @@ export default function AllocationCellDialog({ cell, projects, clients, onClose,
   const { consultant, date, turno } = cell;
   const queryClient = useQueryClient();
 
-  const [projectId, setProjectId] = useState('');
+  const [selectedProjectIds, setSelectedProjectIds] = useState([]);
   const [tipoAgenda, setTipoAgenda] = useState('projeto_modulos');
   const [statusFaturamento, setStatusFaturamento] = useState('a_confirmar');
   const [obs, setObs] = useState('');
@@ -166,13 +211,16 @@ export default function AllocationCellDialog({ cell, projects, clients, onClose,
   const [selectedModuleItemIds, setSelectedModuleItemIds] = useState([]);
   const [selectedActivityIds, setSelectedActivityIds] = useState([]);
   const [rightTab, setRightTab] = useState('anotacoes');
+  const [isSaving, setIsSaving] = useState(false);
 
-  useEffect(() => { setSelectedModuleItemIds([]); setSelectedActivityIds([]); }, [projectId, tipoAgenda]);
+  // Só faz sentido escolher módulos/atividades específicas quando exatamente 1 projeto está selecionado
+  const isMulti = selectedProjectIds.length > 1;
+  const singleProjectId = selectedProjectIds.length === 1 ? selectedProjectIds[0] : '';
 
-  const getClientLabel = (p) => {
-    const c = clients.find(x => x.id === p.client_id);
-    return c ? `${c.nome_fantasia || c.razao_social} — ${p.name}` : p.name;
-  };
+  useEffect(() => { setSelectedModuleItemIds([]); setSelectedActivityIds([]); }, [singleProjectId, tipoAgenda]);
+
+  const toggleProject = (id) =>
+    setSelectedProjectIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
 
   const toggleModuleItem = (id) =>
     setSelectedModuleItemIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
@@ -202,9 +250,8 @@ export default function AllocationCellDialog({ cell, projects, clients, onClose,
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['allocations-schedule'] });
-      queryClient.invalidateQueries({ queryKey: ['moduleItems', projectId] });
-      queryClient.invalidateQueries({ queryKey: ['activities-avulsas', projectId] });
-      onSaved();
+      queryClient.invalidateQueries({ queryKey: ['moduleItems', singleProjectId] });
+      queryClient.invalidateQueries({ queryKey: ['activities-avulsas', singleProjectId] });
     },
     onError: (err) => {
       console.error('[AllocationCellDialog] erro ao salvar:', err?.message || err);
@@ -212,37 +259,47 @@ export default function AllocationCellDialog({ cell, projects, clients, onClose,
     },
   });
 
-  const hasSelected = tipoAgenda === 'projeto_modulos'
+  const hasSelected = !isMulti && (tipoAgenda === 'projeto_modulos'
     ? selectedModuleItemIds.length > 0
-    : selectedActivityIds.length > 0;
+    : selectedActivityIds.length > 0);
 
   const selectedCount = tipoAgenda === 'projeto_modulos'
     ? selectedModuleItemIds.length
     : selectedActivityIds.length;
 
-  const handleSave = () => {
+  const isPending = createMutation.isPending || isSaving;
+
+  const handleSave = async () => {
     if (tipoAgenda === 'outros' && !obs.trim()) return;
-    const selectedProject = projects.find(p => p.id === projectId);
     const dateStr = format(dateObj, 'yyyy-MM-dd');
-    createMutation.mutate({
-      consultant_id: consultant.id,
-      company_id: consultant.company_id || undefined,
-      project_id: projectId || undefined,
-      client_id: selectedProject?.client_id || undefined,
-      data: dateStr,
-      periodo_do_dia: turno,
-      tipo_agenda: tipoAgenda,
-      status_faturamento: statusFaturamento,
-      status: 'ativa',
-      observacoes: obs,
-      module_item_ids: tipoAgenda === 'projeto_modulos' ? selectedModuleItemIds : [],
-      activity_ids: tipoAgenda === 'atividades_avulsas' ? selectedActivityIds : [],
-    });
+    const idsToSave = selectedProjectIds.length > 0 ? selectedProjectIds : [null];
+    setIsSaving(true);
+    try {
+      for (const pid of idsToSave) {
+        const selectedProject = projects.find(p => p.id === pid);
+        await createMutation.mutateAsync({
+          consultant_id: consultant.id,
+          company_id: consultant.company_id || undefined,
+          project_id: pid || undefined,
+          client_id: selectedProject?.client_id || undefined,
+          data: dateStr,
+          periodo_do_dia: turno,
+          tipo_agenda: tipoAgenda,
+          status_faturamento: statusFaturamento,
+          status: 'ativa',
+          observacoes: obs,
+          module_item_ids: (!isMulti && tipoAgenda === 'projeto_modulos') ? selectedModuleItemIds : [],
+          activity_ids: (!isMulti && tipoAgenda === 'atividades_avulsas') ? selectedActivityIds : [],
+        });
+      }
+      onSaved();
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const dateObj = date instanceof Date ? date : new Date(date);
   const allocationDate = new Date(format(dateObj, 'yyyy-MM-dd') + 'T12:00:00');
-  const isPending = createMutation.isPending;
 
   return (
     <Dialog open onOpenChange={(open) => { if (!open) onClose(); }}>
@@ -267,14 +324,17 @@ export default function AllocationCellDialog({ cell, projects, clients, onClose,
           <div className="flex-1 px-6 py-4 overflow-y-auto space-y-4 border-r">
             <div className="space-y-1">
               <Label>Projeto / Cliente</Label>
-              <Select value={projectId} onValueChange={setProjectId}>
-                <SelectTrigger><SelectValue placeholder="Selecione um projeto (opcional)" /></SelectTrigger>
-                <SelectContent>
-                  {projects.map(p => (
-                    <SelectItem key={p.id} value={p.id}>{getClientLabel(p)}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <ProjectMultiSelect
+                projects={projects}
+                clients={clients}
+                selectedIds={selectedProjectIds}
+                onToggle={toggleProject}
+              />
+              {isMulti && (
+                <p className="text-xs text-muted-foreground">
+                  {selectedProjectIds.length} projetos selecionados — será criada uma alocação para cada um.
+                </p>
+              )}
             </div>
 
             <div className="space-y-1">
@@ -289,17 +349,17 @@ export default function AllocationCellDialog({ cell, projects, clients, onClose,
               </Select>
             </div>
 
-            {tipoAgenda === 'projeto_modulos' && projectId && (
+            {!isMulti && tipoAgenda === 'projeto_modulos' && singleProjectId && (
               <ProjectModulesSelector
-                projectId={projectId}
+                projectId={singleProjectId}
                 selectedItems={selectedModuleItemIds}
                 onToggle={toggleModuleItem}
               />
             )}
 
-            {tipoAgenda === 'atividades_avulsas' && (
+            {!isMulti && tipoAgenda === 'atividades_avulsas' && (
               <AvulsaActivitiesSelector
-                projectId={projectId}
+                projectId={singleProjectId}
                 selectedIds={selectedActivityIds}
                 onToggle={toggleActivity}
               />
@@ -364,7 +424,7 @@ export default function AllocationCellDialog({ cell, projects, clients, onClose,
               onClick={handleSave}
               disabled={isPending}
             >
-              {isPending ? 'Salvando...' : 'Salvar sem alocar'}
+              {isPending ? 'Salvando...' : isMulti ? `Salvar ${selectedProjectIds.length} alocações` : 'Salvar sem alocar'}
             </Button>
           </div>
         </div>
