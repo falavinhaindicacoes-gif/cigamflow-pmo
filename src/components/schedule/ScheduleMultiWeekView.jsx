@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { format, addDays, startOfWeek, eachWeekOfInterval, addMonths, startOfMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Plus, X } from 'lucide-react';
@@ -40,9 +41,20 @@ export default function ScheduleMultiWeekView({ rangeStart, rangeEnd, allocation
     }
   });
 
+  // Agrupa alocações uma única vez em vez de filtrar o array inteiro para cada célula (dia × turno × consultor)
+  const cellsMap = useMemo(() => {
+    const map = new Map();
+    for (const a of allocations) {
+      const key = `${a.consultant_id}|${a.data}|${a.periodo_do_dia}`;
+      if (!map.has(key)) map.set(key, []);
+      map.get(key).push(a);
+    }
+    return map;
+  }, [allocations]);
+
   const getCells = (consultantId, date, turno) => {
     const dateStr = format(date, 'yyyy-MM-dd');
-    return allocations.filter(a => a.consultant_id === consultantId && a.data === dateStr && a.periodo_do_dia === turno);
+    return cellsMap.get(`${consultantId}|${dateStr}|${turno}`) || [];
   };
 
   return (

@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useMemo } from 'react';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { format, addDays, startOfWeek } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -25,10 +25,21 @@ export default function ScheduleWeekView({ weekBase, allocations, consultants, o
   const days = getWeekDays(weekBase);
   const activeConsultants = consultants.filter((c) => c.status === 'ativo');
 
-  const getCells = useCallback((consultantId, date, turno) => {
-    const dateStr = format(date, 'yyyy-MM-dd');
-    return allocations.filter(a => a.consultant_id === consultantId && a.data === dateStr && a.periodo_do_dia === turno);
+  // Agrupa alocações uma única vez por render em vez de filtrar o array inteiro para cada célula
+  const cellsMap = useMemo(() => {
+    const map = new Map();
+    for (const a of allocations) {
+      const key = `${a.consultant_id}|${a.data}|${a.periodo_do_dia}`;
+      if (!map.has(key)) map.set(key, []);
+      map.get(key).push(a);
+    }
+    return map;
   }, [allocations]);
+
+  const getCells = (consultantId, date, turno) => {
+    const dateStr = format(date, 'yyyy-MM-dd');
+    return cellsMap.get(`${consultantId}|${dateStr}|${turno}`) || [];
+  };
 
   return (
     <DragDropContext onDragEnd={onDragEnd}>
